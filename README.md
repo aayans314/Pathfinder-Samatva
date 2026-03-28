@@ -5,8 +5,9 @@ Pathfinder is a gamified life and career management dashboard designed for inter
 ## ✨ Key Features
 - **Gamified "My Path" Visualization**: Track your goals (Career, Academics, Fitness) using beautifully rendered nodular skill trees built with React Flow.
 - **Radial "All Paths" Hub**: A stunning circular layout that fans all your life categories around a central, leveling-up User Avatar.
-- **AI-Driven Onboarding**: Uses the **DeepSeek API** to parse your bio and automatically generate actionable, multi-step sub-goals for your dashboard.
-- **Supabase Authentication**: Integrated with Google and LinkedIn OAuth.
+- **AI-Driven Onboarding & Coaching**: Uses the **DeepSeek API** to generate actionable, multi-step sub-goals for your dashboard. Includes a floating **Navigator AI Chatbot** for context-aware goal advice.
+- **Supabase Authentication**: Integrated with Google/LinkedIn OAuth, Email logic, and a secure `Forgot Password` reset flow.
+- **Live Database Sync**: Real-time hydration of user profiles, goals, milestones, and tasks through a custom `DataProvider`.
 - **Decision Matrix Analyzer**: Compare tough life choices using weighted criteria scoring.
 - **Peer Matching**: Find users on a similar path or visa journey.
 

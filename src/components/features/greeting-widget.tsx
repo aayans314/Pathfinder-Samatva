@@ -1,17 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useCurrentUser, useStats, useDailyGoals } from "@/hooks/use-goals";
+import { createClient } from "@/lib/supabase/browser";
 
 export function GreetingWidget() {
-  const user = useCurrentUser();
+  const mockUser = useCurrentUser();
   const stats = useStats();
   const dailyGoals = useDailyGoals();
+  const [displayName, setDisplayName] = useState(mockUser.name);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        const name =
+          data.user.user_metadata?.full_name ||
+          data.user.user_metadata?.name ||
+          data.user.email?.split("@")[0] ||
+          mockUser.name;
+        setDisplayName(name);
+      }
+    });
+  }, [mockUser.name]);
 
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  const firstName = user.name.split(" ")[0];
+  const firstName = displayName.split(" ")[0];
 
   const dailyCompleted = dailyGoals.filter((dg) => dg.completed).length;
   const dailyTotal = dailyGoals.length;

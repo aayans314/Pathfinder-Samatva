@@ -66,6 +66,7 @@ ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 -- Create Policies so users can only read/edit their own data
 CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can manage own goals" ON public.goals 
     FOR ALL USING (auth.uid() = user_id);

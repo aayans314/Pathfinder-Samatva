@@ -25,6 +25,19 @@ interface AppState {
   addDailyGoal: (goal: Omit<DailyGoal, "id" | "created_at">) => void;
   deleteDailyGoal: (id: string) => void;
 
+  clearAndSetPaths: (
+    goals: (Omit<Goal, "created_at"> & { id: string })[],
+    milestones: (Omit<Milestone, "created_at"> & { id: string })[],
+    tasks: Omit<Task, "id" | "created_at">[]
+  ) => void;
+
+  setInitialData: (
+    userId: string,
+    goals: Goal[],
+    milestones: Milestone[],
+    tasks: Task[]
+  ) => void;
+
   decisions: Decision[];
   addDecision: (decision: Omit<Decision, "id" | "created_at">) => void;
   deleteDecision: (id: string) => void;
@@ -168,4 +181,28 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       decisions: state.decisions.filter((d) => d.id !== id),
     })),
+
+  clearAndSetPaths: (newGoals, newMilestones, newTasks) =>
+    set(() => {
+      const now = new Date().toISOString();
+      return {
+        goals: newGoals.map((g) => ({ ...g, created_at: now })),
+        milestones: newMilestones.map((m) => ({ ...m, created_at: now })),
+        tasks: newTasks.map((t, i) => ({
+          ...t,
+          id: `t-onboard-${Date.now()}-${i}`,
+          created_at: now,
+        })),
+        dailyGoals: [], // fresh start
+      };
+    }),
+
+  setInitialData: (userId, newGoals, newMilestones, newTasks) =>
+    set({
+      currentUserId: userId,
+      goals: newGoals,
+      milestones: newMilestones,
+      tasks: newTasks,
+      // Leaving daily goals out of Supabase sync for now
+    }),
 }));

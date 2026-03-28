@@ -11,7 +11,6 @@
   - State store: `src/lib/store.ts` (Zustand) — single source of truth for all client state
 
 ## Active Tasks (Locking)
-- [ ] **Data Sync refactor**: Replace Zustand mock data logic with live Supabase `select/insert/update` API calls across the dashboard components.
 - [ ] **Mobile Responsiveness**: Refine the Radial Layout and Flow diagrams for smaller mobile viewports.
 
 ## Completed (Sync Log)
@@ -56,13 +55,13 @@
 
 ### Phase 6: AI Onboarding & Supabase Auth
 - [x] **Supabase Integration** — Installed `@supabase/ssr`, connected `browser`, `server`, and `middleware` utilities. Real `.env.local` keys initialized!
-- [x] **OAuth Login** — Beautiful `/login` page with Google and LinkedIn integration buttons.
-- [x] **AI Agent Integration** — Server-side `/api/generate-paths` connected to DeepSeek.
-- [x] **Smart Onboarding UI** — Collects user's primary goals and instructs DeepSeek to output exactly 3 personalized JSON "Paths of Life" to inject directly into the user's dashboard.
+- [x] **OAuth Login** — Beautiful `/login` page with Google and LinkedIn integration buttons. Added **Forgot Password** recovery flow with magic links.
+- [x] **AI Agent Integration** — Server-side `/api/generate-paths` connected to DeepSeek. Added **Navigator**, a persistent dashboard AI chatbot for coaching.
+- [x] **Smart Onboarding UI** — Collects user's primary goals and instructs DeepSeek to output personalized JSON "Paths of Life". Results are persisted directly to Supabase (`profiles`, `goals`, `milestones`, `tasks`).
 - [x] **Add Path Dialog** — Wired up My Path's "+ Add Path" to utilize the live DeepSeek API for dynamic gap-filling generation.
+- [x] **Global Data Hydration** — Built `<DataProvider>` to pull Supabase records on mount and hydrate the client-side Zustand store.
 
 ## Active Blockers / Warnings
-- **Real DB Connected, but State is Local**: Supabase keys are plugged in and Auth works! However, the UI still mostly relies on the initial load of `src/lib/mockData.ts` into Zustand. Next priority is swapping Zustand state for `supabase.from('goals').select()`.
 - **Decisions are not persisted to DB.** The `Decision` type lives in `src/lib/store.ts` and is not yet in `supabase_schema.sql`.
 
 ## Architecture Decisions
@@ -75,10 +74,7 @@
 - **Peer Matching:** Matches users by shared goal title strings. When Supabase is connected, switch to matching by `goal_id` or a shared tag/category system.
 
 ## To-Do (Priority List)
-1. Connect Supabase project and configure environment variables
-2. Set up Supabase Auth (email/OAuth) and wire RLS
-3. Replace Zustand mock state with React Query + Supabase client calls
-4. Add `decisions` table to SQL schema and persist to DB
-5. Add real-time subscriptions for task/milestone updates
-6. Add dark mode toggle
-7. Mobile responsive refinements
+1. Convert `decisions` and `peers` features to use Supabase tables
+2. Add real-time Supabase subscriptions for task/milestone updates across devices
+3. Add dark mode toggle and further theme refinement
+4. Mobile responsive layout passes for complex graphs

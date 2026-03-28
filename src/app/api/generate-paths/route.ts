@@ -10,7 +10,7 @@ const openai = new OpenAI({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, bio, target_visa, primary_goal } = body;
+    const { name, bio, goals } = body;
 
     if (!process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json(
@@ -19,43 +19,72 @@ export async function POST(req: Request) {
       );
     }
 
+    // Accept both old format (primary_goal) and new format (goals array)
+    const goalsList: string[] = Array.isArray(goals)
+      ? goals
+      : body.primary_goal
+      ? [body.primary_goal]
+      : [];
+
+    if (goalsList.length === 0) {
+      return NextResponse.json({ error: "No goals provided" }, { status: 400 });
+    }
+
     const systemPrompt = `You are an expert career and life coach for an app called Pathfinder. 
-Given the user's details, you must suggest exactly 3 "Paths of Life" (categories) they should focus on.
-For each Path, suggest 1 clear, actionable Ultimate Goal, and 3 specific milestones to achieve it.
+Given the user's details and their list of goals, create a structured "Path of Life" for EACH goal.
+For each Path, determine the best category, create a clear actionable goal title, and provide 3-5 specific milestones to achieve it.
 
 User Details:
 Name: ${name || "User"}
-Bio: ${bio || "Not provided"}
-Visa Goal: ${target_visa || "Not applicable"}
-Primary Focus Right Now: ${primary_goal || "Unknown"}
+Background: ${bio || "Not provided"}
 
-Return ONLY raw JSON matching this TypeScript structure, with no markdown code blocks formatting it:
+Goals the user wants to achieve:
+${goalsList.map((g: string, i: number) => `${i + 1}. ${g}`).join("\n")}
+
+Return ONLY raw JSON matching this structure, with no markdown code blocks:
 [
   {
     "category": "career" | "academics" | "networking" | "fitness" | "personal",
-    "goalTitle": "string (The ultimate goal)",
+    "goalTitle": "string (clear, actionable goal title)",
     "milestones": [
-      "string (Milestone 1)",
-      "string (Milestone 2)",
-      "string (Milestone 3)"
+      "string (Specific milestone 1)",
+      "string (Specific milestone 2)",
+      "string (Specific milestone 3)"
     ]
   }
-]`;
+]
+
+Important rules:
+- Create exactly one path per user goal
+- Each path must have 3-5 milestones
+- Milestones should be specific, measurable, and actionable
+- Choose the most appropriate category for each goal
+- Goal titles should be polished versions of the user's input`;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],
-      model: "deepseek-chat", // standard reasoning model
-      response_format: { type: "json_object" }, // ensure JSON output
+      model: "deepseek-chat",
+      response_format: { type: "json_object" },
     });
 
     const responseText = completion.choices[0].message.content || "[]";
     
-    let paths;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let paths: any;
     try {
       paths = JSON.parse(responseText);
       // Sometimes models return an object with a "paths" key instead of an array
       if (paths.paths && Array.isArray(paths.paths)) {
         paths = paths.paths;
+      }
+      // Handle case where model wraps in another object
+      if (!Array.isArray(paths)) {
+        const firstArrayKey = Object.keys(paths).find((k) => Array.isArray(paths[k]));
+        if (firstArrayKey) {
+          paths = paths[firstArrayKey];
+        } else {
+          paths = [paths]; // Single object, wrap it
+        }
       }
     } catch (e) {
       console.error("Failed to parse AI response", responseText);
