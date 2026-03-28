@@ -14,6 +14,8 @@ import {
   User,
   Target,
   Compass,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +104,12 @@ export default function OnboardingPage() {
   const [removedPathIndices, setRemovedPathIndices] = useState<Set<number>>(new Set());
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your goals...");
 
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeContext, setResumeContext] = useState<string>("");
+  const [resumeParsed, setResumeParsed] = useState<Record<string, unknown> | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
+
   // Load auth user info
   useEffect(() => {
     async function loadUser() {
@@ -173,6 +181,44 @@ export default function OnboardingPage() {
     });
   };
 
+  const handleResumeUpload = async (file: File) => {
+    setResumeFile(file);
+    setResumeError(null);
+    setResumeUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to parse resume");
+      }
+
+      const data = await res.json();
+      setResumeContext(data.resumeText || "");
+      setResumeParsed(data.parsed || null);
+
+      if (data.parsed?.name && !userName) {
+        setUserName(data.parsed.name);
+      }
+      if (data.parsed?.summary && !bio) {
+        setBio(data.parsed.summary);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to parse resume";
+      setResumeError(msg);
+      setResumeFile(null);
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
   const handleGenerate = async () => {
     const validGoals = userGoals.filter((g) => g.trim() !== "");
     if (validGoals.length === 0) return;
@@ -186,6 +232,7 @@ export default function OnboardingPage() {
           name: userName,
           bio,
           goals: validGoals,
+          resumeContext: resumeContext || undefined,
         }),
       });
 
@@ -386,9 +433,83 @@ export default function OnboardingPage() {
                   />
                 </div>
 
+                {/* Resume Upload */}
+                <div className="space-y-2">
+                  <Label>Resume (optional)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Upload your resume to get personalized paths based on your skills and experience.
+                  </p>
+
+                  {!resumeFile && !resumeUploading ? (
+                    <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border hover:border-foreground/30 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer py-6">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleResumeUpload(f);
+                        }}
+                      />
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Click to upload PDF
+                      </span>
+                    </label>
+                  ) : resumeUploading ? (
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Parsing resume...
+                      </span>
+                    </div>
+                  ) : resumeFile ? (
+                    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3">
+                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {resumeFile.name}
+                        </p>
+                        {resumeParsed && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {[
+                              resumeParsed.skills && Array.isArray(resumeParsed.skills)
+                                ? `${(resumeParsed.skills as string[]).length} skills`
+                                : null,
+                              resumeParsed.experience && Array.isArray(resumeParsed.experience)
+                                ? `${(resumeParsed.experience as unknown[]).length} positions`
+                                : null,
+                              resumeParsed.education && Array.isArray(resumeParsed.education)
+                                ? `${(resumeParsed.education as unknown[]).length} degrees`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Parsed successfully"}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setResumeFile(null);
+                          setResumeContext("");
+                          setResumeParsed(null);
+                          setResumeError(null);
+                        }}
+                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {resumeError && (
+                    <p className="text-xs text-destructive">{resumeError}</p>
+                  )}
+                </div>
+
                 <Button
                   onClick={() => setStep("goals")}
-                  disabled={!userName.trim()}
+                  disabled={!userName.trim() || resumeUploading}
                   className="w-full h-12 text-md mt-4 gap-2"
                 >
                   Continue

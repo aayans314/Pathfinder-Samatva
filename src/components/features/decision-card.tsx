@@ -1,17 +1,8 @@
 "use client";
 
 import { format } from "date-fns";
-import { Trash2, Trophy } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useGoals } from "@/hooks/use-goals";
 import type { Decision } from "@/lib/store";
@@ -37,8 +28,10 @@ export function DecisionCard({ decision, onDelete }: DecisionCardProps) {
     0
   );
 
-  const percentA = maxPossible > 0 ? Math.round((totalA / maxPossible) * 100) : 0;
-  const percentB = maxPossible > 0 ? Math.round((totalB / maxPossible) * 100) : 0;
+  const percentA =
+    maxPossible > 0 ? Math.round((totalA / maxPossible) * 100) : 0;
+  const percentB =
+    maxPossible > 0 ? Math.round((totalB / maxPossible) * 100) : 0;
 
   const winner = totalA > totalB ? "A" : totalB > totalA ? "B" : "tie";
 
@@ -46,109 +39,77 @@ export function DecisionCard({ decision, onDelete }: DecisionCardProps) {
     goals.find((g) => g.id === goalId)?.title ?? "Unknown Goal";
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-base">{decision.title}</CardTitle>
-            <CardDescription>
-              Created {format(new Date(decision.created_at), "MMM d, yyyy")}
-            </CardDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={() => onDelete(decision.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+    <div className="rounded-lg border p-4 space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="font-medium">{decision.title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {format(new Date(decision.created_at), "MMM d, yyyy")}
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div
-            className={cn(
-              "rounded-lg border p-4 text-center",
-              winner === "A" && "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-            )}
-          >
-            <div className="flex items-center justify-center gap-1 mb-1">
-              {winner === "A" && (
-                <Trophy className="h-4 w-4 text-emerald-600" />
-              )}
-              <p className="text-sm font-semibold">{decision.option_a}</p>
-            </div>
-            <p className="text-2xl font-bold">{totalA}</p>
-            <Progress value={percentA} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">{percentA}%</p>
-          </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={() => onDelete(decision.id)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
 
-          <div
-            className={cn(
-              "rounded-lg border p-4 text-center",
-              winner === "B" && "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-            )}
-          >
-            <div className="flex items-center justify-center gap-1 mb-1">
-              {winner === "B" && (
-                <Trophy className="h-4 w-4 text-emerald-600" />
-              )}
-              <p className="text-sm font-semibold">{decision.option_b}</p>
-            </div>
-            <p className="text-2xl font-bold">{totalB}</p>
-            <Progress value={percentB} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">{percentB}%</p>
-          </div>
+      {/* Score comparison */}
+      <div className="grid grid-cols-2 gap-3">
+        <div
+          className={cn(
+            "rounded-md border px-3 py-2.5 text-center",
+            winner === "A" && "border-foreground/30 bg-muted/40"
+          )}
+        >
+          <p className="text-sm font-medium">{decision.option_a}</p>
+          <p className="text-xl font-semibold mt-1 tabular-nums">{percentA}%</p>
         </div>
+        <div
+          className={cn(
+            "rounded-md border px-3 py-2.5 text-center",
+            winner === "B" && "border-foreground/30 bg-muted/40"
+          )}
+        >
+          <p className="text-sm font-medium">{decision.option_b}</p>
+          <p className="text-xl font-semibold mt-1 tabular-nums">{percentB}%</p>
+        </div>
+      </div>
 
-        {winner === "tie" && (
-          <div className="text-center">
-            <Badge variant="secondary">Tie</Badge>
-          </div>
-        )}
-
-        <div className="rounded-lg border">
-          <div className="grid grid-cols-[1fr_60px_60px] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
-            <span>Criterion</span>
-            <span className="text-center">A</span>
-            <span className="text-center">B</span>
-          </div>
-          {decision.criteria.map((c) => {
-            const scoreA = c.weight * c.score_a;
-            const scoreB = c.weight * c.score_b;
-            return (
-              <div
-                key={c.goal_id}
-                className="grid grid-cols-[1fr_60px_60px] gap-2 px-3 py-2 border-t items-center"
+      {/* Criteria breakdown */}
+      <div className="text-xs space-y-1.5">
+        {decision.criteria.map((c) => {
+          const scoreA = c.weight * c.score_a;
+          const scoreB = c.weight * c.score_b;
+          return (
+            <div key={c.goal_id} className="flex items-center gap-2">
+              <span className="flex-1 text-muted-foreground truncate">
+                {goalName(c.goal_id)}
+              </span>
+              <span
+                className={cn(
+                  "tabular-nums w-6 text-right",
+                  scoreA > scoreB && "font-medium text-foreground"
+                )}
               >
-                <div>
-                  <span className="text-sm">{goalName(c.goal_id)}</span>
-                  <span className="text-xs text-muted-foreground ml-1">
-                    (w:{c.weight})
-                  </span>
-                </div>
-                <span
-                  className={cn(
-                    "text-sm text-center font-medium",
-                    scoreA > scoreB && "text-emerald-600"
-                  )}
-                >
-                  {scoreA}
-                </span>
-                <span
-                  className={cn(
-                    "text-sm text-center font-medium",
-                    scoreB > scoreA && "text-emerald-600"
-                  )}
-                >
-                  {scoreB}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+                {scoreA}
+              </span>
+              <span className="text-muted-foreground/40">vs</span>
+              <span
+                className={cn(
+                  "tabular-nums w-6",
+                  scoreB > scoreA && "font-medium text-foreground"
+                )}
+              >
+                {scoreB}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

@@ -2,13 +2,17 @@
 
 import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useGoals, useMilestones, useTasks, useGoalsByCategory } from "@/hooks/use-goals";
+import {
+  useGoals,
+  useMilestones,
+  useTasks,
+  useGoalsByCategory,
+} from "@/hooks/use-goals";
 import { MilestoneFlow } from "@/components/features/milestone-flow";
 import { MilestoneDetailPanel } from "@/components/features/milestone-detail-panel";
 import { CategoryHeader } from "@/components/features/category-header";
 import { AddPathDialog } from "@/components/features/add-path-dialog";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -34,7 +38,8 @@ function MyPathContent() {
   const goals = useGoals();
   const categoryStats = useGoalsByCategory();
 
-  const initialCategory = (searchParams.get("category") as GoalCategory) || null;
+  const initialCategory =
+    (searchParams.get("category") as GoalCategory) || null;
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(
     initialCategory
   );
@@ -43,7 +48,6 @@ function MyPathContent() {
     null
   );
 
-  // Filter goals by category
   const filteredGoals = useMemo(() => {
     if (!selectedCategory) return goals;
     return goals.filter((g) => g.category === selectedCategory);
@@ -52,7 +56,6 @@ function MyPathContent() {
   const goalIdForMilestones =
     selectedGoalId === "all" ? undefined : selectedGoalId;
 
-  // Get milestones filtered by either selected goal or all goals in category
   const allMilestones = useMilestones();
   const milestones = useMemo(() => {
     if (goalIdForMilestones) {
@@ -77,7 +80,6 @@ function MyPathContent() {
     setSelectedCategory(cat);
     setSelectedGoalId("all");
     setSelectedMilestoneId(null);
-    // Update URL without full navigation
     if (cat) {
       router.replace(`/my-path?category=${cat}`, { scroll: false });
     } else {
@@ -85,39 +87,27 @@ function MyPathContent() {
     }
   };
 
-  const completedCount = milestones.filter(
-    (m) => m.status === "completed"
-  ).length;
-  const inProgressCount = milestones.filter(
-    (m) => m.status === "in_progress"
-  ).length;
-
-  // Get current category stats
+  const activeCategories = categoryStats.map((cs) => cs.category);
   const currentCategoryStats = selectedCategory
     ? categoryStats.find((cs) => cs.category === selectedCategory)
     : null;
-
-  // Get accent color
   const accentColor = selectedCategory
     ? CATEGORY_CONFIG[selectedCategory].ring
     : undefined;
 
-  // Categories that have goals
-  const activeCategories = categoryStats.map((cs) => cs.category);
-
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
-      {/* Category pills */}
-      <div className="flex items-center gap-2 mb-4 shrink-0 overflow-x-auto pb-1">
+      {/* Category tabs */}
+      <div className="flex items-center gap-1 mb-4 shrink-0 overflow-x-auto pb-1">
         <button
           onClick={() => handleCategoryChange(null)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+          className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             !selectedCategory
               ? "bg-foreground text-background"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
-          All Paths
+          All
         </button>
         {ALL_CATEGORIES.filter((c) => activeCategories.includes(c)).map(
           (cat) => {
@@ -127,13 +117,12 @@ function MyPathContent() {
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   isActive
-                    ? `bg-gradient-to-r ${config.gradient} text-white shadow-sm`
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <span>{config.emoji}</span>
                 {config.label}
               </button>
             );
@@ -144,7 +133,7 @@ function MyPathContent() {
         </div>
       </div>
 
-      {/* Category header banner */}
+      {/* Category summary */}
       {selectedCategory && currentCategoryStats && (
         <div className="mb-4 shrink-0">
           <CategoryHeader
@@ -154,29 +143,14 @@ function MyPathContent() {
         </div>
       )}
 
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {selectedCategory
-              ? `${CATEGORY_CONFIG[selectedCategory].emoji} ${CATEGORY_CONFIG[selectedCategory].label} Path`
-              : "My Path"}
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="default">{completedCount} completed</Badge>
-            <Badge variant="secondary">{inProgressCount} in progress</Badge>
-            <Badge variant="outline">
-              {milestones.length - completedCount - inProgressCount} locked
-            </Badge>
-          </div>
-        </div>
-
-        {filteredGoals.length > 1 && (
+      {/* Goal filter (only when multiple goals in category) */}
+      {filteredGoals.length > 1 && (
+        <div className="mb-4 shrink-0">
           <Select
             value={selectedGoalId}
             onValueChange={(v) => setSelectedGoalId(v ?? "all")}
           >
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-56">
               <SelectValue placeholder="Filter by goal" />
             </SelectTrigger>
             <SelectContent>
@@ -188,11 +162,11 @@ function MyPathContent() {
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Flow */}
-      <div className="flex-1 relative rounded-lg border bg-muted/30 overflow-hidden">
+      {/* Flow graph */}
+      <div className="flex-1 relative rounded-lg border bg-muted/20 overflow-hidden">
         {milestones.length > 0 ? (
           <MilestoneFlow
             key={`${selectedCategory ?? "all"}-${selectedGoalId}-layout-${selectedCategory ? "linear" : "radial"}`}
@@ -205,7 +179,7 @@ function MyPathContent() {
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground text-sm">
-              No milestones found. Select a category above to view your path.
+              No milestones yet. Select a category or add a new path.
             </p>
           </div>
         )}
@@ -225,7 +199,7 @@ export default function MyPathPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-[calc(100vh-5rem)]">
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       }
     >

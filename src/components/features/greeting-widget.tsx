@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useCurrentUser, useStats, useDailyGoals } from "@/hooks/use-goals";
+import { useCurrentUser, useStats } from "@/hooks/use-goals";
 import { createClient } from "@/lib/supabase/browser";
+import { format } from "date-fns";
 
 export function GreetingWidget() {
   const mockUser = useCurrentUser();
   const stats = useStats();
-  const dailyGoals = useDailyGoals();
   const [displayName, setDisplayName] = useState(mockUser.name);
 
   useEffect(() => {
@@ -24,83 +24,28 @@ export function GreetingWidget() {
     });
   }, [mockUser.name]);
 
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
   const firstName = displayName.split(" ")[0];
-
-  const dailyCompleted = dailyGoals.filter((dg) => dg.completed).length;
-  const dailyTotal = dailyGoals.length;
-
-  // Motivational nudge
-  let nudge = "";
-  if (stats.completionPercent >= 75) {
-    nudge = `You're ${stats.completionPercent}% through your goals — the finish line is in sight!`;
-  } else if (stats.completionPercent >= 50) {
-    nudge = `${stats.completionPercent}% done — past the halfway mark. Keep pushing!`;
-  } else if (stats.completionPercent >= 25) {
-    nudge = `${stats.completionPercent}% complete — great momentum. Every step counts.`;
-  } else {
-    nudge = `Every journey starts with a single step. You've got ${stats.activeGoals} goals to conquer!`;
-  }
-
-  // Format today's date
-  const today = new Date();
-  const dateStr = today.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const today = format(new Date(), "EEEE, MMMM d");
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-muted/30 p-6">
-      {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/5 to-transparent rounded-full -translate-y-32 translate-x-32" />
-
-      <div className="relative space-y-2">
-        <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
-          {dateStr}
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {greeting}, {firstName} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-lg">{nudge}</p>
-
-        {/* Quick stats row */}
-        <div className="flex items-center gap-6 pt-3">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {stats.completedTasks}
-              </span>{" "}
-              tasks completed
-            </span>
+    <div>
+      <p className="text-sm text-muted-foreground">{today}</p>
+      <h1 className="text-2xl font-semibold tracking-tight mt-0.5">
+        Welcome back, {firstName}
+      </h1>
+      {stats.completionPercent > 0 && (
+        <div className="flex items-center gap-3 mt-3">
+          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-xs">
+            <div
+              className="h-full rounded-full bg-foreground/70 transition-all duration-700"
+              style={{ width: `${stats.completionPercent}%` }}
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-blue-500" />
-            <span className="text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {stats.activeGoals}
-              </span>{" "}
-              active goals
-            </span>
-          </div>
-          {dailyTotal > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-amber-500" />
-              <span className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  {dailyCompleted}/{dailyTotal}
-                </span>{" "}
-                daily goals
-              </span>
-            </div>
-          )}
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {stats.completionPercent}% overall
+          </span>
         </div>
-      </div>
+      )}
     </div>
   );
 }

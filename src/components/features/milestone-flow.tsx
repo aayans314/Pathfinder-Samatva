@@ -15,7 +15,7 @@ import { MilestoneNode } from "@/components/features/milestone-node";
 import { HubNode } from "@/components/features/hub-node";
 import { useFlowGraph } from "@/hooks/use-flow-graph";
 import { useRadialGraph } from "@/hooks/use-radial-graph";
-import { useGoalsByCategory } from "@/hooks/use-goals";
+import { useGoals, useGoalsByCategory } from "@/hooks/use-goals";
 import type { Milestone, Task } from "@/types/database";
 
 const nodeTypes: NodeTypes = {
@@ -39,10 +39,10 @@ export function MilestoneFlow({
   onNodeClick,
 }: MilestoneFlowProps) {
   const categoryStats = useGoalsByCategory();
-  
-  // Choose layout algorithm
+  const goals = useGoals();
+
   const linearData = useFlowGraph(milestones, tasks, accentColor);
-  const radialData = useRadialGraph(milestones, tasks, categoryStats);
+  const radialData = useRadialGraph(milestones, tasks, categoryStats, goals);
   
   const graphData = layout === "radial" ? radialData : linearData;
 

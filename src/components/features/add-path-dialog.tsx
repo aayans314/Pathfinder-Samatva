@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppStore } from "@/lib/store";
+import { createClient } from "@/lib/supabase/browser";
 import type { GoalCategory, Goal, Milestone, Task } from "@/types/database";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 
@@ -33,7 +34,7 @@ interface AddPathDialogProps {
 export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
   const [open, setOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<GoalCategory | "">("");
   const [steps, setSteps] = useState("");
@@ -42,41 +43,40 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
 
   const handleGenerate = async () => {
     if (!title || !category || !steps) return;
-    
+
     setIsGenerating(true);
 
     try {
-      // Use the DeepSeek API we just created for Onboarding
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const realUserId = user?.id || currentUserId;
+
       const res = await fetch("/api/generate-paths", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "User", // Can pull from auth later
+          name: "User",
           bio: "",
           primary_goal: `${title} in the ${category} category. User says they need to do: ${steps}. Break this into 1 ultimate goal and 3-4 milestones.`,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to generate path");
-      
-      const data = await res.json();
-      const generatedPath = data.paths[0]; // Take the first suggestion
 
-      const goalId = `g-new-${Date.now()}`;
+      const data = await res.json();
+      const generatedPath = data.paths[0];
+
+      const goalId = crypto.randomUUID();
+      const targetDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
+
       const newGoal: Omit<Goal, "created_at"> = {
         id: goalId,
-        user_id: currentUserId,
+        user_id: realUserId,
         title: generatedPath.goalTitle || title,
         category: category as GoalCategory,
         status: "active",
-        target_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+        target_date: targetDate,
       };
-
-      addGoal(newGoal);
-
-      let currentParentId: string | null = null;
-      let orderIndex = 0;
-      const newTasks: Omit<Task, "id" | "created_at">[] = [];
 
       const milestones = generatedPath.milestones || [
         `Research & Preparation`,
@@ -84,10 +84,15 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
         `Achieve ${title}`
       ];
 
-      for (const mTitle of milestones) {
-        const milestoneId = `m-new-${Date.now()}-${orderIndex}`;
-        
-        const newMilestone: Omit<Milestone, "created_at"> = {
+      const milestonesToCreate: (Omit<Milestone, "created_at"> & { id: string })[] = [];
+      const tasksToCreate: Omit<Task, "id" | "created_at">[] = [];
+      let currentParentId: string | null = null;
+
+      for (let orderIndex = 0; orderIndex < milestones.length; orderIndex++) {
+        const mTitle = milestones[orderIndex];
+        const milestoneId = crypto.randomUUID();
+
+        milestonesToCreate.push({
           id: milestoneId,
           goal_id: goalId,
           title: mTitle,
@@ -95,17 +100,15 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
           status: orderIndex === 0 ? "in_progress" : "locked",
           order_index: orderIndex,
           parent_milestone_id: currentParentId,
-        };
+        });
 
-        addMilestone(newMilestone);
-
-        newTasks.push({
+        tasksToCreate.push({
           milestone_id: milestoneId,
           title: `Kickoff: ${mTitle}`,
           completed: false,
           due_date: null,
         });
-        newTasks.push({
+        tasksToCreate.push({
           milestone_id: milestoneId,
           title: `Execute: ${mTitle}`,
           completed: false,
@@ -113,11 +116,49 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
         });
 
         currentParentId = milestoneId;
-        orderIndex++;
       }
 
-      addTasks(newTasks);
-      
+      // Persist to Supabase first if authenticated
+      if (user) {
+        const { error: goalErr } = await supabase.from("goals").insert({
+          id: goalId,
+          user_id: realUserId,
+          title: newGoal.title,
+          category: newGoal.category,
+          target_date: newGoal.target_date,
+          status: newGoal.status,
+        });
+        if (goalErr) console.error("Error inserting goal:", goalErr);
+
+        const dbMilestones = milestonesToCreate.map((m) => ({
+          id: m.id,
+          goal_id: m.goal_id,
+          title: m.title,
+          description: m.description,
+          status: m.status,
+          order_index: m.order_index,
+          parent_milestone_id: m.parent_milestone_id,
+        }));
+        const { error: msErr } = await supabase.from("milestones").insert(dbMilestones);
+        if (msErr) console.error("Error inserting milestones:", msErr);
+
+        const dbTasks = tasksToCreate.map((t) => ({
+          id: crypto.randomUUID(),
+          milestone_id: t.milestone_id,
+          title: t.title,
+          completed: t.completed,
+        }));
+        const { error: tErr } = await supabase.from("tasks").insert(dbTasks);
+        if (tErr) console.error("Error inserting tasks:", tErr);
+      }
+
+      // Update Zustand store for immediate UI (uses UUID ids so store won't re-persist)
+      addGoal(newGoal);
+      for (const m of milestonesToCreate) {
+        addMilestone(m);
+      }
+      addTasks(tasksToCreate);
+
     } catch (error) {
       console.error(error);
       alert("Failed to generate with AI. Please check your API key or network.");
@@ -147,7 +188,7 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
             Tell us where you want to go, and Pathfinder will fill in the gaps to create your skill tree.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="goal">Ultimate Goal</Label>
@@ -159,11 +200,11 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
               disabled={isGenerating}
             />
           </div>
-          
+
           <div className="grid gap-2">
             <Label htmlFor="category">Life Category</Label>
-            <Select 
-              value={category} 
+            <Select
+              value={category}
               onValueChange={(v) => setCategory(v as GoalCategory)}
               disabled={isGenerating}
             >
@@ -198,8 +239,8 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button 
-            onClick={handleGenerate} 
+          <Button
+            onClick={handleGenerate}
             disabled={!title || !category || !steps || isGenerating}
             className="w-full gap-2 transition-all bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
           >

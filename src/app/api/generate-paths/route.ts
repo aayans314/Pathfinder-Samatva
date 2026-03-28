@@ -10,7 +10,7 @@ const openai = new OpenAI({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, bio, goals } = body;
+    const { name, bio, goals, resumeContext } = body;
 
     if (!process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json(
@@ -30,6 +30,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No goals provided" }, { status: 400 });
     }
 
+    const resumeSection = resumeContext
+      ? `\nResume / Professional Background:\n${resumeContext}\n\nUse the resume information above to make milestones highly specific and relevant to the user's actual skills, experience level, and career stage. Reference specific skills or gaps where appropriate.`
+      : "";
+
     const systemPrompt = `You are an expert career and life coach for an app called Pathfinder. 
 Given the user's details and their list of goals, create a structured "Path of Life" for EACH goal.
 For each Path, determine the best category, create a clear actionable goal title, and provide 3-5 specific milestones to achieve it.
@@ -37,6 +41,7 @@ For each Path, determine the best category, create a clear actionable goal title
 User Details:
 Name: ${name || "User"}
 Background: ${bio || "Not provided"}
+${resumeSection}
 
 Goals the user wants to achieve:
 ${goalsList.map((g: string, i: number) => `${i + 1}. ${g}`).join("\n")}
@@ -59,7 +64,8 @@ Important rules:
 - Each path must have 3-5 milestones
 - Milestones should be specific, measurable, and actionable
 - Choose the most appropriate category for each goal
-- Goal titles should be polished versions of the user's input`;
+- Goal titles should be polished versions of the user's input
+- If resume data is provided, tailor milestones to the user's experience level and skill set`;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],

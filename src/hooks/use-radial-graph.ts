@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Node, Edge } from "@xyflow/react";
-import type { Milestone, Task } from "@/types/database";
+import type { Goal, Milestone, Task } from "@/types/database";
 import type { MilestoneNodeData } from "@/components/features/milestone-node";
 import type { HubNodeData } from "@/components/features/hub-node";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
@@ -8,14 +8,14 @@ import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 const NODE_WIDTH = 260;
 const NODE_HEIGHT = 140;
 
-// Radial layout config
-const RADIUS_STEP = 340; // distance between concentric rings
+const RADIUS_STEP = 340;
 const HUB_ID = "central-user-hub";
 
 export function useRadialGraph(
   milestones: Milestone[],
   tasks: Task[],
-  categoryStats: any[]
+  categoryStats: { completionPercent: number }[],
+  goals: Goal[]
 ) {
   return useMemo(() => {
     if (milestones.length === 0) {
@@ -23,6 +23,7 @@ export function useRadialGraph(
     }
 
     const milestoneMap = new Map(milestones.map((m) => [m.id, m]));
+    const goalMap = new Map(goals.map((g) => [g.id, g]));
     const tasksByMilestone = new Map<string, Task[]>();
     for (const t of tasks) {
       if (!tasksByMilestone.has(t.milestone_id)) {
@@ -31,22 +32,11 @@ export function useRadialGraph(
       tasksByMilestone.get(t.milestone_id)!.push(t);
     }
 
-    // Build category trees
-    // Step 1: Find roots (milestones with no parent) and group them by category
-    const rootsByCategory = new Map<string, Milestone[]>();
-    for (const m of milestones) {
-      if (m.parent_milestone_id === null && m.goal_id) {
-        // We need to figure out the category of this milestone.
-        // It's attached to a goal, but we only have milestones here.
-        // For simplicity in the radial layout, we will infer the category from the goal ID
-        // (Assuming goal.category is known, we pass it down or deduce it. Since we don't pass goals into this hook directly right now,
-        // we'll just group all roots together and distribute them evenly, then color them).
-      }
+    function getCategoryColor(goalId: string): string {
+      const goal = goalMap.get(goalId);
+      const cat = goal?.category ?? "personal";
+      return CATEGORY_CONFIG[cat]?.ring || "#d1d5db";
     }
-
-    // Since we need to know the category of each root to color the edges from the hub,
-    // we actually need the goals. Let's adjust the algorithm:
-    // We group ALL milestones by their root ancestor, and distribute the roots radially.
 
     const childrenMap = new Map<string | null, Milestone[]>();
     for (const m of milestones) {
@@ -61,8 +51,6 @@ export function useRadialGraph(
     }
 
     const roots = childrenMap.get(null) ?? [];
-    
-    // Sort roots by id to keep rotation stable
     roots.sort((a, b) => a.id.localeCompare(b.id));
 
     const totalRoots = roots.length;
@@ -71,11 +59,10 @@ export function useRadialGraph(
     const allNodes: Node[] = [];
     const edges: Edge[] = [];
 
-    // 1. Calculate Hub Stats
     let totalCompletedTasks = 0;
     let totalMilestonesCompleted = 0;
-    
-    for (const [_, ts] of tasksByMilestone) {
+
+    for (const [, ts] of tasksByMilestone) {
       totalCompletedTasks += ts.filter(t => t.completed).length;
     }
     for (const m of milestones) {
@@ -84,17 +71,15 @@ export function useRadialGraph(
 
     const totalXP = totalCompletedTasks * 10 + totalMilestonesCompleted * 50;
     const level = Math.floor(totalXP / 100) + 1;
-    
-    // Calculate overall completion percent from category stats
-    const avgCompletion = categoryStats.length 
+
+    const avgCompletion = categoryStats.length
       ? Math.round(categoryStats.reduce((sum, cs) => sum + cs.completionPercent, 0) / categoryStats.length)
       : 0;
 
-    // 2. Add Center Hub Node
     allNodes.push({
       id: HUB_ID,
       type: "hub",
-      position: { x: -60, y: -60 }, // center the 120x120 hub at (0,0)
+      position: { x: -60, y: -60 },
       data: {
         completionPercent: avgCompletion,
         totalXP,
@@ -102,7 +87,6 @@ export function useRadialGraph(
       } satisfies HubNodeData,
     });
 
-    // 3. Layout Trees Radially
     function layoutRadialSubtree(
       milestoneId: string,
       depth: number,
@@ -112,19 +96,11 @@ export function useRadialGraph(
       const children = childrenMap.get(milestoneId) ?? [];
       const mTasks = tasksByMilestone.get(milestoneId) ?? [];
 
-      // Distance from center
       const r = depth * RADIUS_STEP;
-      
-      // Convert polar (r, angle) to cartesian (x, y)
       const x = r * Math.cos(angle) - NODE_WIDTH / 2;
       const y = r * Math.sin(angle) - NODE_HEIGHT / 2;
 
-      // Extract category from goal ID prefix (mock data convention: goal-academics-1 -> "academics")
-      const catMatch = milestone.goal_id.match(/goal-([^-]+)/);
-      const categoryStr = catMatch ? catMatch[1] : "personal";
-      
-      // Safely get accent color Map
-      const accentColor = CATEGORY_CONFIG[categoryStr as keyof typeof CATEGORY_CONFIG]?.ring || "#d1d5db";
+      const accentColor = getCategoryColor(milestone.goal_id);
 
       allNodes.push({
         id: milestoneId,
@@ -140,10 +116,8 @@ export function useRadialGraph(
         } satisfies MilestoneNodeData,
       });
 
-      // Layout children (fan them out slightly if multiple, or keep straight line if 1)
       if (children.length > 0) {
-        // If 1 child, keep same angle. If multiple, spread them slightly based on depth
-        const spreadAngle = Math.PI / (8 * depth); // narrower spread as depth increases
+        const spreadAngle = Math.PI / (8 * depth);
         const startAngle = angle - (spreadAngle * (children.length - 1)) / 2;
 
         children.forEach((child, index) => {
@@ -153,17 +127,12 @@ export function useRadialGraph(
       }
     }
 
-    // Position each root along the main circle
     roots.forEach((root, index) => {
-      const angle = index * angleStep - Math.PI / 2; // start at top (-90 deg)
-      
+      const angle = index * angleStep - Math.PI / 2;
       layoutRadialSubtree(root.id, 1, angle);
 
-      const catMatch = root.goal_id.match(/goal-([^-]+)/);
-      const categoryStr = catMatch ? catMatch[1] : "personal";
-      const accentColor = CATEGORY_CONFIG[categoryStr as keyof typeof CATEGORY_CONFIG]?.ring || "#d1d5db";
+      const accentColor = getCategoryColor(root.goal_id);
 
-      // Edge from Hub to Root
       edges.push({
         id: `e-${HUB_ID}-${root.id}`,
         source: HUB_ID,
@@ -178,7 +147,6 @@ export function useRadialGraph(
       });
     });
 
-    // Add standard tree edges
     milestones
       .filter((m) => m.parent_milestone_id !== null)
       .forEach((m) => {
@@ -186,15 +154,13 @@ export function useRadialGraph(
         const isCompleted = parentStatus === "completed";
         const isActive = m.status === "in_progress" || parentStatus === "in_progress";
 
-        const catMatch = m.goal_id.match(/goal-([^-]+)/);
-        const categoryStr = catMatch ? catMatch[1] : "personal";
-        const accentColor = CATEGORY_CONFIG[categoryStr as keyof typeof CATEGORY_CONFIG]?.ring || "#3b82f6";
+        const accentColor = getCategoryColor(m.goal_id);
 
         edges.push({
           id: `e-${m.parent_milestone_id}-${m.id}`,
           source: m.parent_milestone_id!,
           target: m.id,
-          type: "bezier", // Softer curves for radial layout
+          type: "bezier",
           animated: isActive,
           style: {
             stroke: isCompleted ? "#f59e0b" : isActive ? accentColor : "#d1d5db",
@@ -204,5 +170,5 @@ export function useRadialGraph(
       });
 
     return { nodes: allNodes, edges };
-  }, [milestones, tasks, categoryStats]);
+  }, [milestones, tasks, categoryStats, goals]);
 }

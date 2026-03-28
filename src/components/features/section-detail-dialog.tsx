@@ -6,14 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Check } from "lucide-react";
 import { useCategoryDetail } from "@/hooks/use-goals";
 import { useAppStore } from "@/lib/store";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 import type { GoalCategory } from "@/types/database";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export function SectionDetailDialog({
   category,
@@ -37,28 +36,24 @@ export function SectionDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="text-2xl">{config.emoji}</span>
-            {config.label}
-            <Badge variant="secondary" className="ml-2 text-xs">
-              {percent}% complete
-            </Badge>
-          </DialogTitle>
+          <DialogTitle>{config.label}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {completedTasks}/{totalTasks} tasks · {percent}% complete
+          </p>
         </DialogHeader>
 
-        {/* Overall progress */}
-        <div className="space-y-2 pt-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Overall progress</span>
-            <span className="font-medium">
-              {completedTasks}/{totalTasks} tasks
-            </span>
-          </div>
-          <Progress value={percent} className="h-2" />
+        <div className="mt-1 h-1 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${percent}%`,
+              backgroundColor: config.ring,
+              opacity: 0.7,
+            }}
+          />
         </div>
 
-        {/* Goals list */}
-        <div className="space-y-6 pt-4">
+        <div className="space-y-6 pt-2">
           {goals.map((goal) => {
             const goalMilestones = milestones.filter(
               (m) => m.goal_id === goal.id
@@ -74,86 +69,73 @@ export function SectionDetailDialog({
                 : 0;
 
             return (
-              <div
-                key={goal.id}
-                className="rounded-lg border border-border/50 p-4 space-y-3"
-              >
-                <div className="flex items-start justify-between">
+              <div key={goal.id} className="space-y-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-sm">{goal.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <h3 className="text-sm font-medium">{goal.title}</h3>
+                    <p className="text-xs text-muted-foreground">
                       Target: {format(new Date(goal.target_date), "MMM yyyy")}
                     </p>
                   </div>
-                  <Badge
-                    variant={
-                      goal.status === "active" ? "default" : "secondary"
-                    }
-                    className="text-xs"
-                  >
-                    {goal.status}
-                  </Badge>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {goalPercent}%
+                  </span>
                 </div>
 
-                <Progress value={goalPercent} className="h-1.5" />
+                <div className="h-1 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-foreground/50 transition-all duration-500"
+                    style={{ width: `${goalPercent}%` }}
+                  />
+                </div>
 
-                {/* Milestones */}
                 {goalMilestones.map((milestone) => {
                   const mTasks = goalTasks.filter(
                     (t) => t.milestone_id === milestone.id
                   );
-                  const statusColor =
-                    milestone.status === "completed"
-                      ? "text-emerald-500"
-                      : milestone.status === "in_progress"
-                        ? "text-blue-500"
-                        : "text-muted-foreground/40";
 
                   return (
-                    <div key={milestone.id} className="pl-3 border-l-2 border-border/30 space-y-2">
+                    <div
+                      key={milestone.id}
+                      className="pl-3 border-l border-border space-y-1.5"
+                    >
                       <div className="flex items-center gap-2">
-                        <div
-                          className={`h-2 w-2 rounded-full ${
-                            milestone.status === "completed"
-                              ? "bg-emerald-500"
-                              : milestone.status === "in_progress"
-                                ? "bg-blue-500"
-                                : "bg-muted-foreground/30"
-                          }`}
-                        />
-                        <span
-                          className={`text-sm font-medium ${statusColor}`}
-                        >
-                          {milestone.title}
-                        </span>
-                        <Badge variant="outline" className="text-[10px] px-1.5">
+                        <span className="text-sm">{milestone.title}</span>
+                        <span className="text-[10px] text-muted-foreground">
                           {milestone.status.replace("_", " ")}
-                        </Badge>
+                        </span>
                       </div>
 
-                      {/* Tasks */}
                       {mTasks.length > 0 && (
-                        <div className="space-y-1 pl-4">
+                        <div className="space-y-0.5 pl-3">
                           {mTasks.map((task) => (
                             <div
                               key={task.id}
-                              className="flex items-center gap-2 group"
+                              className="group flex items-center gap-2 rounded px-1 py-1 -mx-1 hover:bg-muted/40 transition-colors"
                             >
-                              <Checkbox
-                                checked={task.completed}
-                                onCheckedChange={(checked) =>
+                              <button
+                                onClick={() =>
                                   updateTask(task.id, {
-                                    completed: Boolean(checked),
+                                    completed: !task.completed,
                                   })
                                 }
-                                className="h-3.5 w-3.5"
-                              />
-                              <span
-                                className={`text-xs flex-1 ${
+                                className={cn(
+                                  "shrink-0 h-4 w-4 rounded border flex items-center justify-center transition-all",
                                   task.completed
-                                    ? "line-through text-muted-foreground"
-                                    : ""
-                                }`}
+                                    ? "bg-foreground border-foreground"
+                                    : "border-border hover:border-foreground/50"
+                                )}
+                              >
+                                {task.completed && (
+                                  <Check className="h-2.5 w-2.5 text-background" />
+                                )}
+                              </button>
+                              <span
+                                className={cn(
+                                  "text-xs flex-1",
+                                  task.completed &&
+                                    "line-through text-muted-foreground"
+                                )}
                               >
                                 {task.title}
                               </span>

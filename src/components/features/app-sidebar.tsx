@@ -8,9 +8,9 @@ import {
   GitBranch,
   Scale,
   Users,
+  Settings,
   Compass,
   LogOut,
-  UserCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -18,7 +18,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -29,8 +28,8 @@ import {
 import { createClient } from "@/lib/supabase/browser";
 
 const NAV_ITEMS = [
-  { title: "Dashboard", href: "/", icon: LayoutDashboard },
-  { title: "My Path", href: "/my-path", icon: GitBranch },
+  { title: "Home", href: "/", icon: LayoutDashboard },
+  { title: "Path", href: "/my-path", icon: GitBranch },
   { title: "Decisions", href: "/decisions", icon: Scale },
   { title: "Peers", href: "/peers", icon: Users },
 ] as const;
@@ -38,17 +37,16 @@ const NAV_ITEMS = [
 export function AppSidebar() {
   const pathname = usePathname();
   const supabase = createClient();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
-        setUserEmail(data.user.email ?? null);
         setUserName(
           data.user.user_metadata?.full_name ||
-          data.user.user_metadata?.name ||
-          null
+            data.user.user_metadata?.name ||
+            data.user.email?.split("@")[0] ||
+            null
         );
       }
     });
@@ -61,18 +59,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+      <SidebarHeader className="px-4 py-5">
         <Link href="/" className="flex items-center gap-2">
-          <Compass className="h-6 w-6 text-sidebar-primary" />
-          <span className="text-lg font-semibold tracking-tight">
-            Pathfinder
-          </span>
+          <Compass className="h-5 w-5" />
+          <span className="font-semibold tracking-tight">Pathfinder</span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV_ITEMS.map((item) => {
@@ -99,23 +94,18 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4 space-y-3">
-        {(userName || userEmail) && (
-          <div className="flex items-center gap-3 px-2">
-            <UserCircle className="h-8 w-8 text-muted-foreground shrink-0" />
-            <div className="flex flex-col overflow-hidden">
-              {userName && (
-                <span className="text-sm font-medium truncate">{userName}</span>
-              )}
-              {userEmail && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {userEmail}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-1">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={<Link href="/settings" />}
+              isActive={pathname === "/settings"}
+              tooltip="Settings"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}
@@ -127,10 +117,14 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        {userName && (
+          <p className="text-xs text-muted-foreground truncate px-2 pt-1">
+            {userName}
+          </p>
+        )}
       </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>
   );
 }
-

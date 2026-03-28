@@ -21,48 +21,61 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Fetch user's goals
         const { data: goals, error: goalsErr } = await supabase
           .from("goals")
           .select("*")
           .eq("user_id", user.id);
-          
+
         if (goalsErr) throw goalsErr;
-        
-        // If no goals, just set empty to override mock data
+
         if (!goals || goals.length === 0) {
           if (isMounted) {
-            setInitialData(user.id, [], [], []);
+            setInitialData(user.id, [], [], [], [], []);
             setIsLoading(false);
           }
           return;
         }
 
-        // Extract goal IDs to fetch milestones
         const goalIds = goals.map(g => g.id);
-        
+
         const { data: milestones, error: milestonesErr } = await supabase
           .from("milestones")
           .select("*")
           .in("goal_id", goalIds);
-          
+
         if (milestonesErr) throw milestonesErr;
 
-        // Extract milestone IDs to fetch tasks
-        let tasks: any[] = [];
+        let tasks: unknown[] = [];
         if (milestones && milestones.length > 0) {
           const milestoneIds = milestones.map(m => m.id);
           const { data: tasksData, error: tasksErr } = await supabase
             .from("tasks")
             .select("*")
             .in("milestone_id", milestoneIds);
-            
+
           if (tasksErr) throw tasksErr;
           tasks = tasksData || [];
         }
 
+        const { data: dailyGoals } = await supabase
+          .from("daily_goals")
+          .select("*")
+          .eq("user_id", user.id);
+
+        const { data: decisions } = await supabase
+          .from("decisions")
+          .select("*")
+          .eq("user_id", user.id);
+
         if (isMounted) {
-          setInitialData(user.id, goals, milestones || [], tasks);
+          setInitialData(
+            user.id,
+            goals,
+            milestones || [],
+            tasks as Parameters<typeof setInitialData>[3],
+            dailyGoals || [],
+            decisions || []
+          );
         }
       } catch (err) {
         console.error("Failed to load initial data", err);
