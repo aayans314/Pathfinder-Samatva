@@ -11,8 +11,8 @@
   - State store: `src/lib/store.ts` (Zustand) — single source of truth for all client state
 
 ## Active Tasks (Locking)
-- [ ] **Supabase Auth Integration:** (Assigned to: Unassigned) — *Status: Pending*
-- [ ] **Supabase Client Wiring:** (Assigned to: Unassigned) — *Status: Pending* — Replace mock data with live Supabase queries
+- [ ] **Data Sync refactor**: Replace Zustand mock data logic with live Supabase `select/insert/update` API calls across the dashboard components.
+- [ ] **Mobile Responsiveness**: Refine the Radial Layout and Flow diagrams for smaller mobile viewports.
 
 ## Completed (Sync Log)
 
@@ -49,10 +49,21 @@
   - `PeerCard` with avatar, bio, shared goal badges, goal count
   - Sorted by number of shared goals (most relevant first)
 
+### Phase 5: Gamified Visualization
+- [x] **My Path Revamp** — Added category tab pills, progress header banner, and gamified nodes (gold completed, blue pulsing active, locked).
+- [x] **Radial Dashboard** — Created `useRadialGraph` for an aesthetic starburst layout centering on the User Hub avatar node. 
+- [x] **XP System** — Integrated global Level and XP scaling (+10 XP per task, +50 per milestone)
+
+### Phase 6: AI Onboarding & Supabase Auth
+- [x] **Supabase Integration** — Installed `@supabase/ssr`, connected `browser`, `server`, and `middleware` utilities. Real `.env.local` keys initialized!
+- [x] **OAuth Login** — Beautiful `/login` page with Google and LinkedIn integration buttons.
+- [x] **AI Agent Integration** — Server-side `/api/generate-paths` connected to DeepSeek.
+- [x] **Smart Onboarding UI** — Collects user's primary goals and instructs DeepSeek to output exactly 3 personalized JSON "Paths of Life" to inject directly into the user's dashboard.
+- [x] **Add Path Dialog** — Wired up My Path's "+ Add Path" to utilize the live DeepSeek API for dynamic gap-filling generation.
+
 ## Active Blockers / Warnings
-- **No Supabase project connected yet.** All data comes from `src/lib/mockData.ts` via the Zustand store. Do not write Supabase client calls until env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) are configured.
-- **No auth layer.** RLS policies in `schema.sql` depend on `auth.uid()`. Auth integration is next priority.
-- **Decisions are not persisted to DB.** The `Decision` type lives in `src/lib/store.ts` and is not yet in `schema.sql`. Add a `decisions` table when wiring Supabase.
+- **Real DB Connected, but State is Local**: Supabase keys are plugged in and Auth works! However, the UI still mostly relies on the initial load of `src/lib/mockData.ts` into Zustand. Next priority is swapping Zustand state for `supabase.from('goals').select()`.
+- **Decisions are not persisted to DB.** The `Decision` type lives in `src/lib/store.ts` and is not yet in `supabase_schema.sql`.
 
 ## Architecture Decisions
 - **Route Group:** All dashboard pages live under `src/app/(dashboard)/` which wraps them in `SidebarProvider` + `TooltipProvider`. The root `layout.tsx` only handles fonts and global styles.

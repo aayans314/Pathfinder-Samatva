@@ -1,9 +1,9 @@
-import type { User, Goal, Milestone, Task } from "@/types/database";
+import type { User, Goal, Milestone, Task, DailyGoal } from "@/types/database";
 
 export const mockUsers: User[] = [
   {
     id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    name: "Priya Sharma",
+    name: "Aayan Shah",
     bio: "MS Computer Science @ Georgia Tech. Targeting SWE roles at H-1B sponsoring companies.",
     target_visa: "H-1B",
     opt_in_matching: true,
@@ -11,7 +11,7 @@ export const mockUsers: User[] = [
   },
   {
     id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-    name: "Raj Patel",
+    name: "Abhishek Rana",
     bio: "MBA candidate focused on product management. Looking for OPT-friendly roles first.",
     target_visa: "H-1B",
     opt_in_matching: true,
@@ -19,7 +19,7 @@ export const mockUsers: User[] = [
   },
   {
     id: "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    name: "Mei Chen",
+    name: "Abiral Rijal",
     bio: "PhD Biomedical Engineering @ MIT. Researching medical devices, seeking O-1A or H-1B.",
     target_visa: "O-1A",
     opt_in_matching: true,
@@ -27,7 +27,7 @@ export const mockUsers: User[] = [
   },
   {
     id: "d4e5f6a7-b8c9-0123-defa-234567890123",
-    name: "Ahmed Hassan",
+    name: "Shreejay Subedi",
     bio: "MS Data Science @ CMU. Building ML pipelines, targeting H-1B at FAANG.",
     target_visa: "H-1B",
     opt_in_matching: true,
@@ -35,7 +35,7 @@ export const mockUsers: User[] = [
   },
   {
     id: "e5f6a7b8-c9d0-1234-efab-345678901234",
-    name: "Sofia Rodriguez",
+    name: "Sampanna Bhandari",
     bio: "MS HCI @ UW. UX researcher looking for design roles. Exploring EB-2 NIW path.",
     target_visa: "EB-2 NIW",
     opt_in_matching: false,
@@ -44,10 +44,12 @@ export const mockUsers: User[] = [
 ];
 
 export const mockGoals: Goal[] = [
+  // === Aayan's goals (user 1 - main user) ===
   {
     id: "g001-aaaa-bbbb-cccc-ddddeeee0001",
     user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     title: "Secure H-1B Sponsorship",
+    category: "career",
     target_date: "2029-04-01",
     status: "active",
     created_at: "2025-08-15T10:05:00Z",
@@ -56,15 +58,63 @@ export const mockGoals: Goal[] = [
     id: "g001-aaaa-bbbb-cccc-ddddeeee0002",
     user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     title: "Build Professional Network in Tech",
+    category: "networking",
     target_date: "2028-12-31",
     status: "active",
     created_at: "2025-08-15T10:10:00Z",
   },
-  // Peer goals (shared titles enable matching)
+  {
+    id: "g001-aaaa-bbbb-cccc-ddddeeee0003",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Complete MS with 3.8+ GPA",
+    category: "academics",
+    target_date: "2027-05-15",
+    status: "active",
+    created_at: "2025-08-20T09:00:00Z",
+  },
+  {
+    id: "g001-aaaa-bbbb-cccc-ddddeeee0004",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Publish ML Research Paper",
+    category: "research",
+    target_date: "2027-12-01",
+    status: "active",
+    created_at: "2025-09-01T11:00:00Z",
+  },
+  {
+    id: "g001-aaaa-bbbb-cccc-ddddeeee0005",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Land SWE Internship at Top Tech",
+    category: "internships",
+    target_date: "2026-08-01",
+    status: "active",
+    created_at: "2025-09-15T08:00:00Z",
+  },
+  {
+    id: "g001-aaaa-bbbb-cccc-ddddeeee0006",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Run a Half Marathon",
+    category: "fitness",
+    target_date: "2026-11-01",
+    status: "active",
+    created_at: "2025-10-01T07:00:00Z",
+  },
+  {
+    id: "g001-aaaa-bbbb-cccc-ddddeeee0007",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Learn Spanish to B1 Level",
+    category: "personal",
+    target_date: "2027-06-01",
+    status: "active",
+    created_at: "2025-10-15T10:00:00Z",
+  },
+
+  // === Peer goals (shared titles enable matching) ===
   {
     id: "g002-aaaa-bbbb-cccc-ddddeeee0001",
     user_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     title: "Secure H-1B Sponsorship",
+    category: "career",
     target_date: "2029-10-01",
     status: "active",
     created_at: "2025-09-01T14:35:00Z",
@@ -73,6 +123,7 @@ export const mockGoals: Goal[] = [
     id: "g003-aaaa-bbbb-cccc-ddddeeee0001",
     user_id: "c3d4e5f6-a7b8-9012-cdef-123456789012",
     title: "Build Professional Network in Tech",
+    category: "networking",
     target_date: "2028-06-30",
     status: "active",
     created_at: "2025-10-05T08:05:00Z",
@@ -81,6 +132,7 @@ export const mockGoals: Goal[] = [
     id: "g004-aaaa-bbbb-cccc-ddddeeee0001",
     user_id: "d4e5f6a7-b8c9-0123-defa-234567890123",
     title: "Secure H-1B Sponsorship",
+    category: "career",
     target_date: "2030-04-01",
     status: "active",
     created_at: "2025-11-12T16:05:00Z",
@@ -89,6 +141,7 @@ export const mockGoals: Goal[] = [
     id: "g004-aaaa-bbbb-cccc-ddddeeee0002",
     user_id: "d4e5f6a7-b8c9-0123-defa-234567890123",
     title: "Build Professional Network in Tech",
+    category: "networking",
     target_date: "2029-12-31",
     status: "active",
     created_at: "2025-11-12T16:10:00Z",
@@ -97,6 +150,7 @@ export const mockGoals: Goal[] = [
     id: "g005-aaaa-bbbb-cccc-ddddeeee0001",
     user_id: "e5f6a7b8-c9d0-1234-efab-345678901234",
     title: "Build Professional Network in Tech",
+    category: "networking",
     target_date: "2028-12-31",
     status: "active",
     created_at: "2025-12-01T11:05:00Z",
@@ -105,7 +159,7 @@ export const mockGoals: Goal[] = [
 
 // H-1B path: MS → OPT → STEM OPT → lottery → approval (+ parallel specialization branch)
 export const mockMilestones: Milestone[] = [
-  // Goal 1
+  // === Career: Secure H-1B ===
   {
     id: "m001-aaaa-bbbb-cccc-000000000001",
     goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0001",
@@ -167,7 +221,7 @@ export const mockMilestones: Milestone[] = [
     created_at: "2025-08-15T10:40:00Z",
   },
 
-  // Goal 2
+  // === Networking: Build Professional Network ===
   {
     id: "m002-aaaa-bbbb-cccc-000000000001",
     goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0002",
@@ -208,10 +262,170 @@ export const mockMilestones: Milestone[] = [
     order_index: 3,
     created_at: "2025-08-15T11:15:00Z",
   },
+
+  // === Academics: Complete MS ===
+  {
+    id: "m003-aaaa-bbbb-cccc-000000000001",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0003",
+    title: "Complete Core Coursework",
+    description: "Finish all required CS courses with A/A- grades.",
+    parent_milestone_id: null,
+    status: "in_progress",
+    order_index: 0,
+    created_at: "2025-08-20T09:05:00Z",
+  },
+  {
+    id: "m003-aaaa-bbbb-cccc-000000000002",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0003",
+    title: "Complete Electives & Specialization",
+    description: "Take ML and systems electives to build depth.",
+    parent_milestone_id: "m003-aaaa-bbbb-cccc-000000000001",
+    status: "locked",
+    order_index: 1,
+    created_at: "2025-08-20T09:10:00Z",
+  },
+  {
+    id: "m003-aaaa-bbbb-cccc-000000000003",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0003",
+    title: "Thesis Defense",
+    description: "Write and defend MS thesis on distributed ML systems.",
+    parent_milestone_id: "m003-aaaa-bbbb-cccc-000000000002",
+    status: "locked",
+    order_index: 2,
+    created_at: "2025-08-20T09:15:00Z",
+  },
+
+  // === Research: Publish ML Paper ===
+  {
+    id: "m004-aaaa-bbbb-cccc-000000000001",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0004",
+    title: "Literature Review & Problem Definition",
+    description: "Survey 50+ papers and identify a novel research gap.",
+    parent_milestone_id: null,
+    status: "completed",
+    order_index: 0,
+    created_at: "2025-09-01T11:05:00Z",
+  },
+  {
+    id: "m004-aaaa-bbbb-cccc-000000000002",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0004",
+    title: "Experiment Design & Implementation",
+    description: "Build experiment pipeline and run baseline comparisons.",
+    parent_milestone_id: "m004-aaaa-bbbb-cccc-000000000001",
+    status: "in_progress",
+    order_index: 1,
+    created_at: "2025-09-01T11:10:00Z",
+  },
+  {
+    id: "m004-aaaa-bbbb-cccc-000000000003",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0004",
+    title: "Paper Submission to NeurIPS",
+    description: "Write paper draft, get advisor review, and submit.",
+    parent_milestone_id: "m004-aaaa-bbbb-cccc-000000000002",
+    status: "locked",
+    order_index: 2,
+    created_at: "2025-09-01T11:15:00Z",
+  },
+
+  // === Internships: Land SWE Internship ===
+  {
+    id: "m005-aaaa-bbbb-cccc-000000000001",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0005",
+    title: "LeetCode 200 Problems",
+    description: "Complete 200 medium/hard problems across key topics.",
+    parent_milestone_id: null,
+    status: "in_progress",
+    order_index: 0,
+    created_at: "2025-09-15T08:05:00Z",
+  },
+  {
+    id: "m005-aaaa-bbbb-cccc-000000000002",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0005",
+    title: "Apply to 40+ Companies",
+    description: "Target FAANG, unicorns, and H-1B-friendly companies.",
+    parent_milestone_id: "m005-aaaa-bbbb-cccc-000000000001",
+    status: "in_progress",
+    order_index: 1,
+    created_at: "2025-09-15T08:10:00Z",
+  },
+  {
+    id: "m005-aaaa-bbbb-cccc-000000000003",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0005",
+    title: "Accept Offer & Start Internship",
+    description: "Negotiate and accept the best offer with sponsorship potential.",
+    parent_milestone_id: "m005-aaaa-bbbb-cccc-000000000002",
+    status: "locked",
+    order_index: 2,
+    created_at: "2025-09-15T08:15:00Z",
+  },
+
+  // === Fitness: Half Marathon ===
+  {
+    id: "m006-aaaa-bbbb-cccc-000000000001",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0006",
+    title: "Build Base Fitness (5K comfortable)",
+    description: "Run 3x/week, build up to 5K without stopping.",
+    parent_milestone_id: null,
+    status: "completed",
+    order_index: 0,
+    created_at: "2025-10-01T07:05:00Z",
+  },
+  {
+    id: "m006-aaaa-bbbb-cccc-000000000002",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0006",
+    title: "10K Training Block",
+    description: "Follow 8-week 10K plan, add tempo runs.",
+    parent_milestone_id: "m006-aaaa-bbbb-cccc-000000000001",
+    status: "in_progress",
+    order_index: 1,
+    created_at: "2025-10-01T07:10:00Z",
+  },
+  {
+    id: "m006-aaaa-bbbb-cccc-000000000003",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0006",
+    title: "Half Marathon Race Day",
+    description: "Register and complete the Atlanta Half Marathon.",
+    parent_milestone_id: "m006-aaaa-bbbb-cccc-000000000002",
+    status: "locked",
+    order_index: 2,
+    created_at: "2025-10-01T07:15:00Z",
+  },
+
+  // === Personal: Learn Spanish ===
+  {
+    id: "m007-aaaa-bbbb-cccc-000000000001",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0007",
+    title: "Complete A1 Level",
+    description: "Finish Duolingo tree + basic conversation practice.",
+    parent_milestone_id: null,
+    status: "completed",
+    order_index: 0,
+    created_at: "2025-10-15T10:05:00Z",
+  },
+  {
+    id: "m007-aaaa-bbbb-cccc-000000000002",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0007",
+    title: "Complete A2 Level",
+    description: "Italki tutoring sessions + grammar workbook.",
+    parent_milestone_id: "m007-aaaa-bbbb-cccc-000000000001",
+    status: "in_progress",
+    order_index: 1,
+    created_at: "2025-10-15T10:10:00Z",
+  },
+  {
+    id: "m007-aaaa-bbbb-cccc-000000000003",
+    goal_id: "g001-aaaa-bbbb-cccc-ddddeeee0007",
+    title: "Pass B1 DELE Exam",
+    description: "Register and pass the official B1 Spanish proficiency exam.",
+    parent_milestone_id: "m007-aaaa-bbbb-cccc-000000000002",
+    status: "locked",
+    order_index: 2,
+    created_at: "2025-10-15T10:15:00Z",
+  },
 ];
 
 export const mockTasks: Task[] = [
-  // Complete MS (completed)
+  // === Career: Complete MS (completed milestone) ===
   {
     id: "t001-0001",
     milestone_id: "m001-aaaa-bbbb-cccc-000000000001",
@@ -237,7 +451,7 @@ export const mockTasks: Task[] = [
     created_at: "2025-08-16T09:10:00Z",
   },
 
-  // Secure OPT (in progress)
+  // === Career: Secure OPT (in progress) ===
   {
     id: "t002-0001",
     milestone_id: "m001-aaaa-bbbb-cccc-000000000002",
@@ -271,7 +485,7 @@ export const mockTasks: Task[] = [
     created_at: "2025-12-01T10:15:00Z",
   },
 
-  // Cloud/ML Specialization (in progress, parallel branch)
+  // === Career: Cloud/ML Specialization ===
   {
     id: "t006-0001",
     milestone_id: "m001-aaaa-bbbb-cccc-000000000006",
@@ -297,7 +511,7 @@ export const mockTasks: Task[] = [
     created_at: "2025-10-01T08:10:00Z",
   },
 
-  // Conferences (Goal 2)
+  // === Networking: Conferences ===
   {
     id: "t007-0001",
     milestone_id: "m002-aaaa-bbbb-cccc-000000000001",
@@ -323,7 +537,7 @@ export const mockTasks: Task[] = [
     created_at: "2025-09-01T12:10:00Z",
   },
 
-  // Blog Series (Goal 2)
+  // === Networking: Blog Series ===
   {
     id: "t009-0001",
     milestone_id: "m002-aaaa-bbbb-cccc-000000000003",
@@ -347,5 +561,272 @@ export const mockTasks: Task[] = [
     completed: false,
     due_date: "2026-03-15",
     created_at: "2025-09-15T09:10:00Z",
+  },
+
+  // === Academics: Core Coursework ===
+  {
+    id: "t010-0001",
+    milestone_id: "m003-aaaa-bbbb-cccc-000000000001",
+    title: "Complete Advanced Algorithms final project",
+    completed: true,
+    due_date: "2026-03-01",
+    created_at: "2025-08-20T10:00:00Z",
+  },
+  {
+    id: "t010-0002",
+    milestone_id: "m003-aaaa-bbbb-cccc-000000000001",
+    title: "Submit Distributed Systems lab reports",
+    completed: true,
+    due_date: "2026-03-15",
+    created_at: "2025-08-20T10:05:00Z",
+  },
+  {
+    id: "t010-0003",
+    milestone_id: "m003-aaaa-bbbb-cccc-000000000001",
+    title: "Study for Database Systems midterm",
+    completed: false,
+    due_date: "2026-04-10",
+    created_at: "2025-08-20T10:10:00Z",
+  },
+
+  // === Research: Literature Review (completed) ===
+  {
+    id: "t011-0001",
+    milestone_id: "m004-aaaa-bbbb-cccc-000000000001",
+    title: "Read 50 papers on federated learning",
+    completed: true,
+    due_date: "2025-12-01",
+    created_at: "2025-09-02T09:00:00Z",
+  },
+  {
+    id: "t011-0002",
+    milestone_id: "m004-aaaa-bbbb-cccc-000000000001",
+    title: "Write literature review chapter",
+    completed: true,
+    due_date: "2026-01-15",
+    created_at: "2025-09-02T09:05:00Z",
+  },
+
+  // === Research: Experiments (in progress) ===
+  {
+    id: "t012-0001",
+    milestone_id: "m004-aaaa-bbbb-cccc-000000000002",
+    title: "Set up experiment pipeline on GCP",
+    completed: true,
+    due_date: "2026-02-15",
+    created_at: "2025-11-01T10:00:00Z",
+  },
+  {
+    id: "t012-0002",
+    milestone_id: "m004-aaaa-bbbb-cccc-000000000002",
+    title: "Run baseline model comparisons",
+    completed: false,
+    due_date: "2026-04-30",
+    created_at: "2025-11-01T10:05:00Z",
+  },
+  {
+    id: "t012-0003",
+    milestone_id: "m004-aaaa-bbbb-cccc-000000000002",
+    title: "Analyze results and create visualizations",
+    completed: false,
+    due_date: "2026-06-15",
+    created_at: "2025-11-01T10:10:00Z",
+  },
+
+  // === Internships: LeetCode ===
+  {
+    id: "t013-0001",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000001",
+    title: "Complete 50 array/string problems",
+    completed: true,
+    due_date: "2026-01-15",
+    created_at: "2025-09-16T08:00:00Z",
+  },
+  {
+    id: "t013-0002",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000001",
+    title: "Complete 50 tree/graph problems",
+    completed: true,
+    due_date: "2026-02-15",
+    created_at: "2025-09-16T08:05:00Z",
+  },
+  {
+    id: "t013-0003",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000001",
+    title: "Complete 50 DP problems",
+    completed: false,
+    due_date: "2026-04-01",
+    created_at: "2025-09-16T08:10:00Z",
+  },
+  {
+    id: "t013-0004",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000001",
+    title: "Complete 50 system design problems",
+    completed: false,
+    due_date: "2026-05-01",
+    created_at: "2025-09-16T08:15:00Z",
+  },
+
+  // === Internships: Applications ===
+  {
+    id: "t014-0001",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000002",
+    title: "Apply to Google, Meta, Amazon internships",
+    completed: true,
+    due_date: "2026-02-01",
+    created_at: "2025-10-01T09:00:00Z",
+  },
+  {
+    id: "t014-0002",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000002",
+    title: "Apply to 20 mid-size tech companies",
+    completed: false,
+    due_date: "2026-03-15",
+    created_at: "2025-10-01T09:05:00Z",
+  },
+  {
+    id: "t014-0003",
+    milestone_id: "m005-aaaa-bbbb-cccc-000000000002",
+    title: "Complete mock interviews (5 rounds)",
+    completed: false,
+    due_date: "2026-04-01",
+    created_at: "2025-10-01T09:10:00Z",
+  },
+
+  // === Fitness: Base Fitness (completed) ===
+  {
+    id: "t015-0001",
+    milestone_id: "m006-aaaa-bbbb-cccc-000000000001",
+    title: "Run 3x per week for 6 weeks",
+    completed: true,
+    due_date: "2025-11-15",
+    created_at: "2025-10-02T07:00:00Z",
+  },
+  {
+    id: "t015-0002",
+    milestone_id: "m006-aaaa-bbbb-cccc-000000000001",
+    title: "Complete Couch-to-5K program",
+    completed: true,
+    due_date: "2025-12-31",
+    created_at: "2025-10-02T07:05:00Z",
+  },
+
+  // === Fitness: 10K Training ===
+  {
+    id: "t016-0001",
+    milestone_id: "m006-aaaa-bbbb-cccc-000000000002",
+    title: "Run 10K without stopping",
+    completed: false,
+    due_date: "2026-04-30",
+    created_at: "2026-01-01T07:00:00Z",
+  },
+  {
+    id: "t016-0002",
+    milestone_id: "m006-aaaa-bbbb-cccc-000000000002",
+    title: "Add weekly tempo and interval sessions",
+    completed: false,
+    due_date: "2026-05-15",
+    created_at: "2026-01-01T07:05:00Z",
+  },
+
+  // === Personal: Spanish A1 (completed) ===
+  {
+    id: "t017-0001",
+    milestone_id: "m007-aaaa-bbbb-cccc-000000000001",
+    title: "Complete Duolingo Spanish tree",
+    completed: true,
+    due_date: "2026-01-31",
+    created_at: "2025-10-16T10:00:00Z",
+  },
+  {
+    id: "t017-0002",
+    milestone_id: "m007-aaaa-bbbb-cccc-000000000001",
+    title: "Have 5 basic conversations on Tandem app",
+    completed: true,
+    due_date: "2026-02-28",
+    created_at: "2025-10-16T10:05:00Z",
+  },
+
+  // === Personal: Spanish A2 (in progress) ===
+  {
+    id: "t018-0001",
+    milestone_id: "m007-aaaa-bbbb-cccc-000000000002",
+    title: "Complete 10 Italki tutoring sessions",
+    completed: false,
+    due_date: "2026-05-01",
+    created_at: "2026-01-15T10:00:00Z",
+  },
+  {
+    id: "t018-0002",
+    milestone_id: "m007-aaaa-bbbb-cccc-000000000002",
+    title: "Finish A2 grammar workbook",
+    completed: false,
+    due_date: "2026-06-15",
+    created_at: "2026-01-15T10:05:00Z",
+  },
+];
+
+// Helper to get today's date string
+function getTodayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const today = getTodayString();
+
+export const mockDailyGoals: DailyGoal[] = [
+  {
+    id: "dg-001",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Solve 2 LeetCode problems",
+    completed: true,
+    date: today,
+    category: "internships",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "dg-002",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Read 1 research paper on federated learning",
+    completed: false,
+    date: today,
+    category: "research",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "dg-003",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "30 min Spanish practice on Duolingo",
+    completed: true,
+    date: today,
+    category: "personal",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "dg-004",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Run 5K (training plan day 3)",
+    completed: false,
+    date: today,
+    category: "fitness",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "dg-005",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Review lecture notes for Database Systems",
+    completed: true,
+    date: today,
+    category: "academics",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "dg-006",
+    user_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "Send follow-up email to recruiter at Google",
+    completed: false,
+    date: today,
+    category: "career",
+    created_at: new Date().toISOString(),
   },
 ];

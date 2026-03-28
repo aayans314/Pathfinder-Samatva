@@ -1,5 +1,14 @@
 export type GoalStatus = "active" | "paused" | "completed" | "archived";
 export type MilestoneStatus = "locked" | "in_progress" | "completed";
+export type GoalCategory =
+  | "daily"
+  | "academics"
+  | "research"
+  | "internships"
+  | "career"
+  | "fitness"
+  | "networking"
+  | "personal";
 
 export interface User {
   id: string;
@@ -14,6 +23,7 @@ export interface Goal {
   id: string;
   user_id: string;
   title: string;
+  category: GoalCategory;
   target_date: string;
   status: GoalStatus;
   created_at: string;
@@ -36,5 +46,15 @@ export interface Task {
   title: string;
   completed: boolean;
   due_date: string | null;
+  created_at: string;
+}
+
+export interface DailyGoal {
+  id: string;
+  user_id: string;
+  title: string;
+  completed: boolean;
+  date: string;
+  category: GoalCategory;
   created_at: string;
 }

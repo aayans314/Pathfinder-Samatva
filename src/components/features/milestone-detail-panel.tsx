@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { CheckCircle2, Circle, Lock, Loader2, X } from "lucide-react";
+import { CheckCircle2, Circle, Lock, Loader2, X, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,11 +12,31 @@ import type { MilestoneStatus } from "@/types/database";
 
 const statusDisplay: Record<
   MilestoneStatus,
-  { label: string; icon: React.ComponentType<{ className?: string }>; variant: "default" | "secondary" | "outline" }
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    variant: "default" | "secondary" | "outline";
+    color: string;
+  }
 > = {
-  completed: { label: "Completed", icon: CheckCircle2, variant: "default" },
-  in_progress: { label: "In Progress", icon: Loader2, variant: "secondary" },
-  locked: { label: "Locked", icon: Lock, variant: "outline" },
+  completed: {
+    label: "Completed",
+    icon: CheckCircle2,
+    variant: "default",
+    color: "text-amber-600",
+  },
+  in_progress: {
+    label: "In Progress",
+    icon: Loader2,
+    variant: "secondary",
+    color: "text-blue-600",
+  },
+  locked: {
+    label: "Locked",
+    icon: Lock,
+    variant: "outline",
+    color: "text-muted-foreground",
+  },
 };
 
 interface MilestoneDetailPanelProps {
@@ -37,12 +57,23 @@ export function MilestoneDetailPanel({
   const config = statusDisplay[milestone.status];
   const StatusIcon = config.icon;
   const completedCount = tasks.filter((t) => t.completed).length;
+  const allDone = tasks.length > 0 && completedCount === tasks.length;
+
+  // XP calculation
+  const taskXP = completedCount * 10;
+  const milestoneXP = milestone.status === "completed" ? 50 : 0;
+  const totalXP = taskXP + milestoneXP;
 
   return (
     <div className="absolute right-0 top-0 h-full w-80 border-l bg-background shadow-lg z-10 flex flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h3 className="font-semibold text-sm truncate">{milestone.title}</h3>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-7 w-7"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -52,6 +83,7 @@ export function MilestoneDetailPanel({
           <StatusIcon
             className={cn(
               "h-4 w-4",
+              config.color,
               milestone.status === "in_progress" && "animate-spin"
             )}
           />
@@ -62,6 +94,33 @@ export function MilestoneDetailPanel({
             </span>
           )}
         </div>
+
+        {/* XP Summary */}
+        <div className="rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <span className="text-sm font-semibold text-amber-700">
+              {totalXP} XP earned
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-amber-600/80">
+            <span>{taskXP} XP from tasks</span>
+            {milestoneXP > 0 && <span>+50 XP milestone bonus</span>}
+          </div>
+        </div>
+
+        {/* All tasks completed celebration */}
+        {allDone && (
+          <div className="rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/50 p-3 text-center">
+            <p className="text-lg mb-1">🎉</p>
+            <p className="text-sm font-semibold text-emerald-700">
+              All tasks completed!
+            </p>
+            <p className="text-xs text-emerald-600/80">
+              This milestone is ready to be marked as cleared.
+            </p>
+          </div>
+        )}
 
         {milestone.description && (
           <p className="text-sm text-muted-foreground">
@@ -77,7 +136,7 @@ export function MilestoneDetailPanel({
             {tasks.map((task) => (
               <label
                 key={task.id}
-                className="flex items-start gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer"
+                className="flex items-start gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer group"
               >
                 <Checkbox
                   checked={task.completed}
@@ -86,7 +145,7 @@ export function MilestoneDetailPanel({
                   }
                   className="mt-0.5"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <span
                     className={cn(
                       "text-sm",
@@ -101,6 +160,11 @@ export function MilestoneDetailPanel({
                     </p>
                   )}
                 </div>
+                {task.completed && (
+                  <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    +10 XP
+                  </span>
+                )}
               </label>
             ))}
           </div>

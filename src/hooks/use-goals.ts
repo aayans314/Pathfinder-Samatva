@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
+import type { GoalCategory } from "@/types/database";
 
 export function useCurrentUser() {
   return useAppStore((s) => {
@@ -98,4 +99,90 @@ export function useStats() {
           : 0,
     };
   }, [goals, milestones, tasks, currentUserId]);
+}
+
+// ===== New hooks for life sections =====
+
+export function useDailyGoals() {
+  const currentUserId = useAppStore((s) => s.currentUserId);
+  const dailyGoals = useAppStore(useShallow((s) => s.dailyGoals));
+
+  return useMemo(() => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return dailyGoals.filter(
+      (dg) => dg.user_id === currentUserId && dg.date === today
+    );
+  }, [dailyGoals, currentUserId]);
+}
+
+export interface CategoryStats {
+  category: GoalCategory;
+  goals: number;
+  totalMilestones: number;
+  completedMilestones: number;
+  totalTasks: number;
+  completedTasks: number;
+  completionPercent: number;
+}
+
+export function useGoalsByCategory(): CategoryStats[] {
+  const currentUserId = useAppStore((s) => s.currentUserId);
+  const goals = useAppStore(useShallow((s) => s.goals));
+  const milestones = useAppStore(useShallow((s) => s.milestones));
+  const tasks = useAppStore(useShallow((s) => s.tasks));
+
+  return useMemo(() => {
+    const userGoals = goals.filter(
+      (g) => g.user_id === currentUserId && g.category !== "daily"
+    );
+    const categories = [...new Set(userGoals.map((g) => g.category))];
+
+    return categories.map((cat) => {
+      const catGoals = userGoals.filter((g) => g.category === cat);
+      const catGoalIds = new Set(catGoals.map((g) => g.id));
+      const catMilestones = milestones.filter((m) =>
+        catGoalIds.has(m.goal_id)
+      );
+      const catMilestoneIds = new Set(catMilestones.map((m) => m.id));
+      const catTasks = tasks.filter((t) =>
+        catMilestoneIds.has(t.milestone_id)
+      );
+      const completed = catTasks.filter((t) => t.completed).length;
+
+      return {
+        category: cat,
+        goals: catGoals.length,
+        totalMilestones: catMilestones.length,
+        completedMilestones: catMilestones.filter(
+          (m) => m.status === "completed"
+        ).length,
+        totalTasks: catTasks.length,
+        completedTasks: completed,
+        completionPercent:
+          catTasks.length > 0
+            ? Math.round((completed / catTasks.length) * 100)
+            : 0,
+      };
+    });
+  }, [goals, milestones, tasks, currentUserId]);
+}
+
+export function useCategoryDetail(category: GoalCategory) {
+  const currentUserId = useAppStore((s) => s.currentUserId);
+  const goals = useAppStore(useShallow((s) => s.goals));
+  const milestones = useAppStore(useShallow((s) => s.milestones));
+  const tasks = useAppStore(useShallow((s) => s.tasks));
+
+  return useMemo(() => {
+    const catGoals = goals.filter(
+      (g) => g.user_id === currentUserId && g.category === category
+    );
+    const catGoalIds = new Set(catGoals.map((g) => g.id));
+    const catMilestones = milestones.filter((m) => catGoalIds.has(m.goal_id));
+    const catMilestoneIds = new Set(catMilestones.map((m) => m.id));
+    const catTasks = tasks.filter((t) => catMilestoneIds.has(t.milestone_id));
+
+    return { goals: catGoals, milestones: catMilestones, tasks: catTasks };
+  }, [goals, milestones, tasks, currentUserId, category]);
 }

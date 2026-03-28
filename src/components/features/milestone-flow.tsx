@@ -12,34 +12,48 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { MilestoneNode } from "@/components/features/milestone-node";
+import { HubNode } from "@/components/features/hub-node";
 import { useFlowGraph } from "@/hooks/use-flow-graph";
+import { useRadialGraph } from "@/hooks/use-radial-graph";
+import { useGoalsByCategory } from "@/hooks/use-goals";
 import type { Milestone, Task } from "@/types/database";
 
 const nodeTypes: NodeTypes = {
   milestone: MilestoneNode,
+  hub: HubNode,
 };
 
 interface MilestoneFlowProps {
   milestones: Milestone[];
   tasks: Task[];
+  accentColor?: string;
+  layout?: "linear" | "radial";
   onNodeClick?: (milestoneId: string) => void;
 }
 
 export function MilestoneFlow({
   milestones,
   tasks,
+  accentColor,
+  layout = "linear",
   onNodeClick,
 }: MilestoneFlowProps) {
-  const { nodes: initialNodes, edges: initialEdges } = useFlowGraph(
-    milestones,
-    tasks
-  );
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const categoryStats = useGoalsByCategory();
+  
+  // Choose layout algorithm
+  const linearData = useFlowGraph(milestones, tasks, accentColor);
+  const radialData = useRadialGraph(milestones, tasks, categoryStats);
+  
+  const graphData = layout === "radial" ? radialData : linearData;
+
+  const [nodes, , onNodesChange] = useNodesState(graphData.nodes);
+  const [edges, , onEdgesChange] = useEdgesState(graphData.edges);
 
   const handleNodeClick = useCallback(
-    (_: React.MouseEvent, node: { id: string }) => {
-      onNodeClick?.(node.id);
+    (_: React.MouseEvent, node: { id: string; type?: string }) => {
+      if (node.type !== "hub" && node.id) {
+        onNodeClick?.(node.id);
+      }
     },
     [onNodeClick]
   );
@@ -53,8 +67,8 @@ export function MilestoneFlow({
       onNodeClick={handleNodeClick}
       nodeTypes={nodeTypes}
       fitView
-      fitViewOptions={{ padding: 0.3 }}
-      minZoom={0.3}
+      fitViewOptions={layout === "radial" ? { padding: 0.1, maxZoom: 1 } : { padding: 0.3 }}
+      minZoom={0.1}
       maxZoom={1.5}
       proOptions={{ hideAttribution: true }}
     >
@@ -67,3 +81,4 @@ export function MilestoneFlow({
     </ReactFlow>
   );
 }
+

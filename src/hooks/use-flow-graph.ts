@@ -3,10 +3,10 @@ import type { Node, Edge } from "@xyflow/react";
 import type { Milestone, Task } from "@/types/database";
 import type { MilestoneNodeData } from "@/components/features/milestone-node";
 
-const NODE_WIDTH = 240;
-const NODE_HEIGHT = 120;
+const NODE_WIDTH = 260;
+const NODE_HEIGHT = 140;
 const HORIZONTAL_GAP = 80;
-const VERTICAL_GAP = 60;
+const VERTICAL_GAP = 70;
 
 function buildTree(milestones: Milestone[]) {
   const childrenMap = new Map<string | null, Milestone[]>();
@@ -34,7 +34,8 @@ function layoutSubtree(
   childrenMap: Map<string | null, Milestone[]>,
   tasksByMilestone: Map<string, Task[]>,
   depth: number,
-  offsetX: number
+  offsetX: number,
+  accentColor?: string
 ): LayoutResult {
   const milestone = milestones.get(milestoneId)!;
   const children = childrenMap.get(milestoneId) ?? [];
@@ -51,6 +52,7 @@ function layoutSubtree(
         status: milestone.status,
         taskCount: tasks.length,
         completedTaskCount: tasks.filter((t) => t.completed).length,
+        accentColor,
       } satisfies MilestoneNodeData,
     };
     return { nodes: [node], width: NODE_WIDTH };
@@ -66,7 +68,8 @@ function layoutSubtree(
       childrenMap,
       tasksByMilestone,
       depth + 1,
-      childOffset
+      childOffset,
+      accentColor
     );
     childResults.push(result);
     childOffset += result.width + HORIZONTAL_GAP;
@@ -88,6 +91,7 @@ function layoutSubtree(
       status: milestone.status,
       taskCount: tasks.length,
       completedTaskCount: tasks.filter((t) => t.completed).length,
+      accentColor,
     } satisfies MilestoneNodeData,
   };
 
@@ -95,7 +99,11 @@ function layoutSubtree(
   return { nodes: allNodes, width: totalChildWidth };
 }
 
-export function useFlowGraph(milestones: Milestone[], tasks: Task[]) {
+export function useFlowGraph(
+  milestones: Milestone[],
+  tasks: Task[],
+  accentColor?: string
+) {
   return useMemo(() => {
     if (milestones.length === 0) {
       return { nodes: [], edges: [] };
@@ -122,7 +130,8 @@ export function useFlowGraph(milestones: Milestone[], tasks: Task[]) {
         childrenMap,
         tasksByMilestone,
         0,
-        currentOffsetX
+        currentOffsetX,
+        accentColor
       );
       allNodes.push(...result.nodes);
       currentOffsetX += result.width + HORIZONTAL_GAP * 2;
@@ -132,22 +141,27 @@ export function useFlowGraph(milestones: Milestone[], tasks: Task[]) {
       .filter((m) => m.parent_milestone_id !== null)
       .map((m) => {
         const parentStatus = milestoneMap.get(m.parent_milestone_id!)?.status;
+        const isCompleted = parentStatus === "completed";
+        const isActive =
+          m.status === "in_progress" || parentStatus === "in_progress";
+
         return {
           id: `e-${m.parent_milestone_id}-${m.id}`,
           source: m.parent_milestone_id!,
           target: m.id,
           type: "smoothstep",
-          animated: m.status === "in_progress",
+          animated: isActive,
           style: {
-            stroke:
-              parentStatus === "completed"
-                ? "var(--color-emerald-500, #10b981)"
-                : "var(--color-muted-foreground, #a3a3a3)",
-            strokeWidth: 2,
+            stroke: isCompleted
+              ? "#f59e0b" // golden path for completed
+              : isActive
+                ? accentColor || "#3b82f6"
+                : "#d1d5db",
+            strokeWidth: isCompleted ? 3 : 2,
           },
         };
       });
 
     return { nodes: allNodes, edges };
-  }, [milestones, tasks]);
+  }, [milestones, tasks, accentColor]);
 }
