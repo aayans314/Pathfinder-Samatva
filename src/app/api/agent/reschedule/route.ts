@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Goal, GoalCategory, Milestone, Task } from "@/types/database";
 import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
+export const maxDuration = 60;
+
 const REQUEST_TIMEOUT_MS = 55_000;
 
 /** Goal categories that must never be paused (academic, career, visa-critical path). */

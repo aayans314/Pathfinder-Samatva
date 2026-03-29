@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
+export const maxDuration = 60;
+
 export async function POST() {
   try {
     if (!process.env.DEEPSEEK_API_KEY) {

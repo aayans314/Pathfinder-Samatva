@@ -6,6 +6,8 @@ import {
 } from "@/lib/ai/generated-path";
 import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
+export const maxDuration = 60;
+
 const TIME_FRAME_SPEC = TIME_FRAME_IDS.map(
   (id) => `"${id}" → ${DEFAULT_TIME_FRAME_LABELS[id]}`
 ).join("\n");

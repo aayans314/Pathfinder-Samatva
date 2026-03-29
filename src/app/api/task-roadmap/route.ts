@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
-const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+export const maxDuration = 60;
 
 interface TaskRoadmapRequest {
   taskTitle?: string;
@@ -154,6 +151,7 @@ Goal category: ${body.goalCategory || "N/A"}
 Due date: ${body.dueDate || "N/A"}
 Top goals: ${(body.topGoals || []).join(" | ") || "N/A"}`;
 
+    const openai = getDeepSeekClient();
     const completion = await openai.chat.completions.create({
       model: "deepseek-chat",
       messages: [{ role: "system", content: prompt }],

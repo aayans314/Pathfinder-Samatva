@@ -22,3 +22,32 @@ export function requireSupabaseEnv(): { url: string; key: string } {
     key: key || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder",
   };
 }
+
+/**
+ * Returns the canonical site URL for OAuth redirects.
+ * Priority: NEXT_PUBLIC_SITE_URL env var → VERCEL_URL (auto-set by Vercel) → window.location.origin.
+ *
+ * Set NEXT_PUBLIC_SITE_URL in Vercel's env vars to your production domain
+ * (e.g. "https://pathfinder-samatva.vercel.app") to ensure OAuth always
+ * redirects to the correct origin.
+ */
+export function getSiteUrl(): string {
+  // 1. Explicit site URL (set in Vercel dashboard → Environment Variables)
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+  }
+
+  // 2. Vercel auto-injects VERCEL_URL (without protocol) for preview deploys
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+
+  // 3. Client-side fallback
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  // 4. Server-side fallback for local dev
+  return "http://localhost:3000";
+}
+
