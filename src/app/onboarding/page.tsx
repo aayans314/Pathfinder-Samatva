@@ -681,7 +681,7 @@ export default function OnboardingPage() {
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">{loadingMessage}</h2>
                 <p className="text-muted-foreground text-sm">
-                  This usually takes 10-15 seconds. Hang tight!
+                  This usually takes 1-2 minutes. Hang tight!
                 </p>
               </div>
             </div>
