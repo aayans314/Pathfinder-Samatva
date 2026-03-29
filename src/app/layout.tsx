@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "Map daily tasks to long-term goals. Visualize your progress, reduce burnout, and stay on track.",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem("pathfinder-theme");if(t==="dark")document.documentElement.classList.add("dark")}catch(e){}})()`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem("pathfinder-theme");if(t!=="light")document.documentElement.classList.add("dark")}catch(e){document.documentElement.classList.add("dark")}})()`;
 
 export default function RootLayout({
   children,

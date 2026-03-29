@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 type Theme = "light" | "dark";
 
 function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  return (localStorage.getItem("pathfinder-theme") as Theme) || "light";
+  if (typeof window === "undefined") return "dark";
+  return (localStorage.getItem("pathfinder-theme") as Theme) || "dark";
 }
 
 function applyTheme(theme: Theme) {
@@ -22,14 +22,11 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 
   useEffect(() => {
-    const stored = getStoredTheme();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from localStorage after mount
-    setTheme(stored);
-    applyTheme(stored);
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
   function toggle() {
     const next: Theme = theme === "light" ? "dark" : "light";
@@ -38,11 +35,11 @@ export function ThemeToggle() {
   }
 
   return (
-    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggle}>
+    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggle}>
       {theme === "dark" ? (
-        <Sun className="h-4 w-4" />
+        <Sun className="h-5 w-5" />
       ) : (
-        <Moon className="h-4 w-4" />
+        <Moon className="h-5 w-5" />
       )}
     </Button>
   );

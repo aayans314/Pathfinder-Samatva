@@ -31,12 +31,7 @@ interface AppState {
 
   addTask: (task: Omit<Task, "id" | "created_at">) => void;
   addTasks: (tasks: Omit<Task, "id" | "created_at">[]) => void;
-  updateTask: (
-    id: string,
-    updates: Partial<
-      Pick<Task, "title" | "completed" | "due_date" | "milestone_id" | "sort_order">
-    >
-  ) => void;
+  updateTask: (id: string, updates: Partial<Pick<Task, "title" | "completed" | "due_date" | "milestone_id">>) => void;
   deleteTask: (id: string) => void;
 
   addGoal: (goal: Omit<Goal, "id" | "created_at"> & { id?: string }) => void;
@@ -55,7 +50,8 @@ interface AppState {
   clearAndSetPaths: (
     goals: (Omit<Goal, "created_at"> & { id: string })[],
     milestones: (Omit<Milestone, "created_at"> & { id: string })[],
-    tasks: Omit<Task, "id" | "created_at">[]
+    tasks: Omit<Task, "id" | "created_at">[],
+    userId?: string
   ) => void;
 
   setInitialData: (
@@ -66,12 +62,6 @@ interface AppState {
     dailyGoals?: DailyGoal[],
     decisions?: Decision[]
   ) => void;
-
-  /** Apply agentic reschedule: pause milestones and set global task priority order. */
-  applyAgentReschedule: (payload: {
-    milestonesToPause: string[];
-    reprioritizedTaskIds: string[];
-  }) => void;
 }
 
 function getSupabase() {
@@ -94,43 +84,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   addTask: (taskData) => {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    set((state) => {
-      const siblings = state.tasks.filter(
-        (t) => t.milestone_id === taskData.milestone_id
-      );
-      const maxOrder = siblings.reduce(
-        (max, t) => Math.max(max, t.sort_order ?? 0),
-        -1
-      );
-      const sort_order = maxOrder + 1;
-      const newTask: Task = {
-        ...taskData,
-        id,
-        created_at: now,
-        sort_order,
-      };
-      return { tasks: [...state.tasks, newTask] };
-    });
+    const newTask: Task = { ...taskData, id, created_at: now };
+
+    set((state) => ({ tasks: [...state.tasks, newTask] }));
 
     const supabase = getSupabase();
-    const task = get().tasks.find((t) => t.id === id);
-    const sort_order = task?.sort_order ?? 0;
-    supabase
-      .from("tasks")
-      .upsert(
-        {
-          id,
-          milestone_id: taskData.milestone_id,
-          title: taskData.title,
-          completed: taskData.completed,
-          due_date: taskData.due_date,
-          sort_order,
-        },
-        { onConflict: "id" }
-      )
-      .then(({ error }) => {
-        if (error) console.error("Failed to persist task:", error);
-      });
+    supabase.from("tasks").insert({
+      id,
+      milestone_id: taskData.milestone_id,
+      title: taskData.title,
+      completed: taskData.completed,
+      due_date: taskData.due_date,
+    }).then(({ error }) => {
+      if (error) console.error("Failed to persist task:", error);
+    });
   },
 
   addTasks: (tasksData) => {
@@ -150,14 +117,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       title: t.title,
       completed: t.completed,
       due_date: t.due_date,
-      sort_order: t.sort_order ?? 0,
     }));
-    supabase
-      .from("tasks")
-      .upsert(rows, { onConflict: "id" })
-      .then(({ error }) => {
-        if (error) console.error("Failed to persist tasks:", error);
-      });
+    supabase.from("tasks").insert(rows).then(({ error }) => {
+      if (error) console.error("Failed to persist tasks:", error);
+    });
   },
 
   addGoal: (goalData) => {
@@ -169,22 +132,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (!isMockId(id)) {
       const supabase = getSupabase();
-      supabase
-        .from("goals")
-        .upsert(
-          {
-            id,
-            user_id: goalData.user_id,
-            title: goalData.title,
-            category: goalData.category,
-            target_date: goalData.target_date,
-            status: goalData.status,
-          },
-          { onConflict: "id" }
-        )
-        .then(({ error }) => {
-          if (error) console.error("Failed to persist goal:", error);
-        });
+      supabase.from("goals").insert({
+        id,
+        user_id: goalData.user_id,
+        title: goalData.title,
+        category: goalData.category,
+        target_date: goalData.target_date,
+        status: goalData.status,
+      }).then(({ error }) => {
+        if (error) console.error("Failed to persist goal:", error);
+      });
     }
   },
 
@@ -197,23 +154,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (!isMockId(id)) {
       const supabase = getSupabase();
-      supabase
-        .from("milestones")
-        .upsert(
-          {
-            id,
-            goal_id: milestoneData.goal_id,
-            title: milestoneData.title,
-            description: milestoneData.description,
-            parent_milestone_id: milestoneData.parent_milestone_id,
-            status: milestoneData.status,
-            order_index: milestoneData.order_index,
-          },
-          { onConflict: "id" }
-        )
-        .then(({ error }) => {
-          if (error) console.error("Failed to persist milestone:", error);
-        });
+      supabase.from("milestones").insert({
+        id,
+        goal_id: milestoneData.goal_id,
+        title: milestoneData.title,
+        description: milestoneData.description,
+        parent_milestone_id: milestoneData.parent_milestone_id,
+        status: milestoneData.status,
+        order_index: milestoneData.order_index,
+      }).then(({ error }) => {
+        if (error) console.error("Failed to persist milestone:", error);
+      });
     }
   },
 
@@ -229,11 +180,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           const allComplete = siblingTasks.every((t) => t.completed);
           const milestone = newMilestones.find((m) => m.id === task.milestone_id);
 
-          if (
-            allComplete &&
-            milestone &&
-            milestone.status === "in_progress"
-          ) {
+          if (allComplete && milestone && milestone.status !== "completed") {
             newMilestones = newMilestones.map((m) => {
               if (m.id === milestone.id) return { ...m, status: "completed" as const };
               if (m.parent_milestone_id === milestone.id && m.status === "locked") {
@@ -265,21 +212,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (!isMockId(id)) {
       const supabase = getSupabase();
-      const row: Record<string, unknown> = {};
-      if (updates.title !== undefined) row.title = updates.title;
-      if (updates.completed !== undefined) row.completed = updates.completed;
-      if (updates.due_date !== undefined) row.due_date = updates.due_date;
-      if (updates.milestone_id !== undefined) row.milestone_id = updates.milestone_id;
-      if (updates.sort_order !== undefined) row.sort_order = updates.sort_order;
-      if (Object.keys(row).length > 0) {
-        supabase
-          .from("tasks")
-          .update(row)
-          .eq("id", id)
-          .then(({ error }) => {
-            if (error) console.error("Failed to update task:", error);
-          });
-      }
+      supabase.from("tasks").update(updates).eq("id", id).then(({ error }) => {
+        if (error) console.error("Failed to update task:", error);
+      });
     }
   },
 
@@ -407,96 +342,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  applyAgentReschedule: ({ milestonesToPause, reprioritizedTaskIds }) => {
-    const prev = get();
-    const userGoalIds = new Set(
-      prev.goals
-        .filter((g) => g.user_id === prev.currentUserId)
-        .map((g) => g.id)
-    );
-    const userMilestones = prev.milestones.filter((m) =>
-      userGoalIds.has(m.goal_id)
-    );
-    const milestoneIds = new Set(userMilestones.map((m) => m.id));
-    const pauseSet = new Set(
-      milestonesToPause.filter((id) => milestoneIds.has(id))
-    );
-
-    const newMilestones = prev.milestones.map((m) => {
-      if (!pauseSet.has(m.id)) return m;
-      if (m.status === "completed") return m;
-      return { ...m, status: "paused" as const };
-    });
-
-    const userTasks = prev.tasks.filter((t) => milestoneIds.has(t.milestone_id));
-    const userTaskIdSet = new Set(userTasks.map((t) => t.id));
-
-    const orderedIds = reprioritizedTaskIds.filter((id) =>
-      userTaskIdSet.has(id)
-    );
-    const seen = new Set<string>();
-    const deduped: string[] = [];
-    for (const id of orderedIds) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      deduped.push(id);
-    }
-
-    const restIds = userTasks
-      .filter((t) => !seen.has(t.id))
-      .sort((a, b) => {
-        const ao = a.sort_order ?? 0;
-        const bo = b.sort_order ?? 0;
-        if (ao !== bo) return ao - bo;
-        return a.created_at.localeCompare(b.created_at);
-      })
-      .map((t) => t.id);
-
-    const finalOrder = [...deduped, ...restIds];
-    const orderMap = new Map(finalOrder.map((id, i) => [id, i]));
-
-    const newTasks = prev.tasks.map((t) => {
-      if (!orderMap.has(t.id)) return t;
-      return { ...t, sort_order: orderMap.get(t.id)! };
-    });
-
-    set({ milestones: newMilestones, tasks: newTasks });
-
-    const supabase = getSupabase();
-    for (const m of newMilestones) {
-      const old = prev.milestones.find((o) => o.id === m.id);
-      if (old && old.status !== m.status && !isMockId(m.id)) {
-        supabase
-          .from("milestones")
-          .update({ status: m.status })
-          .eq("id", m.id)
-          .then(({ error }) => {
-            if (error) console.error("Failed to persist milestone pause:", error);
-          });
-      }
-    }
-    for (const t of newTasks) {
-      const old = prev.tasks.find((o) => o.id === t.id);
-      if (
-        old &&
-        (old.sort_order ?? 0) !== (t.sort_order ?? 0) &&
-        !isMockId(t.id)
-      ) {
-        supabase
-          .from("tasks")
-          .update({ sort_order: t.sort_order ?? 0 })
-          .eq("id", t.id)
-          .then(({ error }) => {
-            if (error) console.error("Failed to persist task order:", error);
-          });
-      }
-    }
-  },
-
-  clearAndSetPaths: (newGoals, newMilestones, newTasks) =>
+  clearAndSetPaths: (newGoals, newMilestones, newTasks, userId) =>
     set(() => {
       const now = new Date().toISOString();
+      const inferredUserId = userId ?? newGoals[0]?.user_id ?? mockUsers[0].id;
       return {
+        currentUserId: inferredUserId,
         goals: newGoals.map((g) => ({ ...g, created_at: now })),
         milestones: newMilestones.map((m) => ({ ...m, created_at: now })),
         tasks: newTasks.map((t) => ({

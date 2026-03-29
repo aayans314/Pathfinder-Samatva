@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
 import {
   useGoals,
   useMilestones,
@@ -13,6 +12,7 @@ import { MilestoneFlow } from "@/components/features/milestone-flow";
 import { MilestoneDetailPanel } from "@/components/features/milestone-detail-panel";
 import { CategoryHeader } from "@/components/features/category-header";
 import { AddPathDialog } from "@/components/features/add-path-dialog";
+import { PathOverview } from "@/components/features/path-overview";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 import {
   Select,
@@ -21,8 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { useAppStore } from "@/lib/store";
 import type { GoalCategory } from "@/types/database";
 
 const ALL_CATEGORIES: GoalCategory[] = [
@@ -43,17 +41,12 @@ function MyPathContent() {
 
   const initialCategory =
     (searchParams.get("category") as GoalCategory) || null;
-  const [selectedCategory, setSelectedCategory] = useState<GoalCategory | null>(
-    initialCategory
-  );
+  const [selectedCategory, setSelectedCategory] =
+    useState<GoalCategory | null>(initialCategory);
   const [selectedGoalId, setSelectedGoalId] = useState<string>("all");
-  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(
-    null
-  );
-  const [capacityPercent, setCapacityPercent] = useState(100);
-  const [rescheduleLoading, setRescheduleLoading] = useState(false);
-  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
-  const applyAgentReschedule = useAppStore((s) => s.applyAgentReschedule);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<
+    string | null
+  >(null);
 
   const filteredGoals = useMemo(() => {
     if (!selectedCategory) return goals;
@@ -102,50 +95,30 @@ function MyPathContent() {
     ? CATEGORY_CONFIG[selectedCategory].ring
     : undefined;
 
-  const handleAgentReschedule = useCallback(async () => {
-    setRescheduleError(null);
-    setRescheduleLoading(true);
-    try {
-      const res = await fetch("/api/agent/reschedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ capacityPercent }),
-      });
-      const data = (await res.json()) as {
-        error?: string;
-        milestonesToPause?: string[];
-        reprioritizedTaskIds?: string[];
-      };
-      if (!res.ok) {
-        throw new Error(data.error || "Could not reschedule");
-      }
-      applyAgentReschedule({
-        milestonesToPause: data.milestonesToPause ?? [],
-        reprioritizedTaskIds: data.reprioritizedTaskIds ?? [],
-      });
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Reschedule failed. Try again.";
-      setRescheduleError(message);
-    } finally {
-      setRescheduleLoading(false);
-    }
-  }, [applyAgentReschedule, capacityPercent]);
+  const isOverview = !selectedCategory;
+
+  const completedCount = milestones.filter(
+    (m) => m.status === "completed"
+  ).length;
+  const totalCount = milestones.length;
+  const progressPct =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
-      {/* Category tabs */}
-      <div className="flex items-center gap-1 mb-4 shrink-0 overflow-x-auto pb-1">
+      {/* Top bar: category pills + add */}
+      <div className="flex items-center gap-2 mb-2 shrink-0 overflow-x-auto pb-0.5">
         <button
           onClick={() => handleCategoryChange(null)}
-          className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            !selectedCategory
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          className={`shrink-0 flex cursor-pointer items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            isOverview
+              ? "bg-muted/50 text-foreground ring-1 ring-border shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
           }`}
         >
-          All
+          All paths
         </button>
+
         {ALL_CATEGORIES.filter((c) => activeCategories.includes(c)).map(
           (cat) => {
             const config = CATEGORY_CONFIG[cat];
@@ -154,140 +127,139 @@ function MyPathContent() {
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
-                className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`shrink-0 flex cursor-pointer items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   isActive
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "text-foreground ring-1 ring-border shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: `${config.ring}25`,
+                      }
+                    : undefined
+                }
               >
+                <span
+                  className="h-3 w-3 rounded-full shrink-0 shadow-sm"
+                  style={{ backgroundColor: config.ring }}
+                />
                 {config.label}
               </button>
             );
           }
         )}
-        <div className="ml-auto flex items-center gap-2 shrink-0">
+
+        <div className="ml-auto shrink-0">
           <AddPathDialog onSuccess={handleCategoryChange} />
         </div>
       </div>
 
-      {/* Capacity alert — agentic reschedule */}
-      <div className="mb-4 shrink-0 rounded-lg border bg-muted/30 px-3 py-3 space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-            Capacity alert
-          </span>
-          <label className="flex items-center gap-2 flex-1 min-w-[160px] max-w-md">
-            <span className="text-[10px] text-muted-foreground w-8">Low</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={capacityPercent}
-              onChange={(e) =>
-                setCapacityPercent(Number.parseInt(e.target.value, 10))
-              }
-              disabled={rescheduleLoading}
-              className="flex-1 h-2 accent-foreground disabled:opacity-50"
-              aria-label="Available capacity percent"
-            />
-            <span className="text-[10px] text-muted-foreground w-8 text-right">
-              High
-            </span>
-          </label>
-          <span className="text-xs tabular-nums font-medium w-10">
-            {capacityPercent}%
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="gap-1.5 shrink-0"
-            disabled={rescheduleLoading || milestones.length === 0}
-            onClick={() => void handleAgentReschedule()}
-          >
-            {rescheduleLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      {/* === OVERVIEW MODE: swimlane cards === */}
+      {isOverview && (
+        <div className="flex-1 relative rounded-2xl border border-border bg-card overflow-hidden">
+          <PathOverview onCategoryClick={handleCategoryChange} />
+        </div>
+      )}
+
+      {/* === CATEGORY MODE: horizontal flow === */}
+      {!isOverview && (
+        <>
+          {/* Category summary */}
+          {currentCategoryStats && (
+            <div className="mb-3 shrink-0 rounded-2xl border border-border bg-card/50 backdrop-blur-md p-4">
+              <CategoryHeader
+                category={selectedCategory!}
+                stats={currentCategoryStats}
+              />
+            </div>
+          )}
+
+          {/* Goal filter */}
+          {filteredGoals.length > 1 && (
+            <div className="mb-3 shrink-0">
+              <Select
+                value={selectedGoalId}
+                onValueChange={(v) => setSelectedGoalId(v ?? "all")}
+              >
+                <SelectTrigger className="w-56 h-10 text-base font-medium bg-card/50 border-border">
+                  <SelectValue placeholder="Filter by goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Goals</SelectItem>
+                  {filteredGoals.map((goal) => (
+                    <SelectItem key={goal.id} value={goal.id}>
+                      {goal.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Inline progress summary */}
+          {totalCount > 0 && (
+            <div className="flex items-center gap-3 mb-3 shrink-0 px-1">
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${progressPct}%`,
+                    backgroundColor: accentColor || "#22d3ee",
+                  }}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground tabular-nums font-semibold shrink-0">
+                {completedCount}/{totalCount} milestones · {progressPct}%
+              </span>
+            </div>
+          )}
+
+          {/* Flow graph */}
+          <div className="flex-1 relative rounded-2xl border border-border bg-card overflow-hidden">
+            {milestones.length > 0 ? (
+              <MilestoneFlow
+                key={`${selectedCategory}-${selectedGoalId}`}
+                milestones={milestones}
+                tasks={filteredTasks}
+                accentColor={accentColor}
+                layout="linear"
+                onNodeClick={handleNodeClick}
+              />
             ) : (
-              <Sparkles className="h-3.5 w-3.5" />
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <div className="h-20 w-20 rounded-full bg-muted/60 border border-border flex items-center justify-center">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-10 w-10 text-muted-foreground/60"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </div>
+                <div className="text-center space-y-1.5">
+                  <p className="text-base font-medium text-foreground">
+                    No milestones in this category yet
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    Add a path to see your journey unfold left → right.
+                  </p>
+                </div>
+              </div>
             )}
-            Restructure path
-          </Button>
-        </div>
-        <p className="text-[10px] text-muted-foreground leading-snug">
-          Lower capacity lets Navigator pause non-critical milestones and
-          reprioritize tasks. Critical academics, career, and visa-related goals
-          stay protected.
-        </p>
-        {rescheduleError && (
-          <p className="text-xs text-destructive">{rescheduleError}</p>
-        )}
-      </div>
-
-      {/* Category summary */}
-      {selectedCategory && currentCategoryStats && (
-        <div className="mb-4 shrink-0">
-          <CategoryHeader
-            category={selectedCategory}
-            stats={currentCategoryStats}
-          />
-        </div>
-      )}
-
-      {/* Goal filter (only when multiple goals in category) */}
-      {filteredGoals.length > 1 && (
-        <div className="mb-4 shrink-0">
-          <Select
-            value={selectedGoalId}
-            onValueChange={(v) => setSelectedGoalId(v ?? "all")}
-          >
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Filter by goal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Goals</SelectItem>
-              {filteredGoals.map((goal) => (
-                <SelectItem key={goal.id} value={goal.id}>
-                  {goal.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Flow graph */}
-      <div className="flex-1 relative rounded-lg border bg-muted/20 overflow-hidden">
-        {rescheduleLoading && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/85 backdrop-blur-[2px] px-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm font-medium text-center text-foreground max-w-sm">
-              Navigator is restructuring your path…
-            </p>
+            {selectedMilestoneId && (
+              <MilestoneDetailPanel
+                milestoneId={selectedMilestoneId}
+                onClose={() => setSelectedMilestoneId(null)}
+              />
+            )}
           </div>
-        )}
-        {milestones.length > 0 ? (
-          <MilestoneFlow
-            key={`${selectedCategory ?? "all"}-${selectedGoalId}-layout-${selectedCategory ? "linear" : "radial"}`}
-            milestones={milestones}
-            tasks={filteredTasks}
-            accentColor={accentColor}
-            layout={selectedCategory ? "linear" : "radial"}
-            onNodeClick={handleNodeClick}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground text-sm">
-              No milestones yet. Select a category or add a new path.
-            </p>
-          </div>
-        )}
-        {selectedMilestoneId && (
-          <MilestoneDetailPanel
-            milestoneId={selectedMilestoneId}
-            onClose={() => setSelectedMilestoneId(null)}
-          />
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -297,7 +269,10 @@ export default function MyPathPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-[calc(100vh-5rem)]">
-          <p className="text-muted-foreground text-sm">Loading...</p>
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+            <p className="text-muted-foreground text-base">Loading your path...</p>
+          </div>
         </div>
       }
     >

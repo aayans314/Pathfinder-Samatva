@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Lock, Loader2, X, Star, PauseCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export function MilestoneDetailPanel({
   milestoneId,
   onClose,
 }: MilestoneDetailPanelProps) {
+  const router = useRouter();
   const milestone = useMilestoneById(milestoneId);
   const tasks = useTasks(milestoneId);
   const updateTask = useAppStore((s) => s.updateTask);
@@ -71,7 +73,7 @@ export function MilestoneDetailPanel({
   const totalXP = taskXP + milestoneXP;
 
   return (
-    <div className="absolute right-0 top-0 h-full w-80 border-l bg-background shadow-lg z-10 flex flex-col">
+    <div className="absolute right-0 top-0 h-full w-96 border-l bg-background shadow-lg z-10 flex flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h3 className="font-semibold text-sm truncate">{milestone.title}</h3>
         <Button
@@ -102,14 +104,14 @@ export function MilestoneDetailPanel({
         </div>
 
         {/* XP Summary */}
-        <div className="rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 p-3">
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/20 p-3">
           <div className="flex items-center gap-2 mb-1">
             <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-            <span className="text-sm font-semibold text-amber-700">
+            <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">
               {totalXP} XP earned
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-amber-600/80">
+          <div className="flex items-center gap-3 text-xs text-amber-600/70 dark:text-amber-400/70">
             <span>{taskXP} XP from tasks</span>
             {milestoneXP > 0 && <span>+50 XP milestone bonus</span>}
           </div>
@@ -117,12 +119,12 @@ export function MilestoneDetailPanel({
 
         {/* All tasks completed celebration */}
         {allDone && (
-          <div className="rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/50 p-3 text-center">
+          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-400/20 p-3 text-center">
             <p className="text-lg mb-1">🎉</p>
-            <p className="text-sm font-semibold text-emerald-700">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
               All tasks completed!
             </p>
-            <p className="text-xs text-emerald-600/80">
+            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
               This milestone is ready to be marked as cleared.
             </p>
           </div>
@@ -140,38 +142,57 @@ export function MilestoneDetailPanel({
               Tasks
             </h4>
             {tasks.map((task) => (
-              <label
+              <div
                 key={task.id}
-                className="flex items-start gap-2 rounded-md p-2 hover:bg-muted/50 cursor-pointer group"
+                className="rounded-md p-2 hover:bg-muted/50 group"
               >
-                <Checkbox
-                  checked={task.completed}
-                  onCheckedChange={(checked) =>
-                    updateTask(task.id, { completed: checked === true })
-                  }
-                  className="mt-0.5"
-                />
-                <div className="min-w-0 flex-1">
-                  <span
-                    className={cn(
-                      "text-sm",
-                      task.completed && "line-through text-muted-foreground"
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={task.completed}
+                    onCheckedChange={(checked) =>
+                      updateTask(task.id, { completed: checked === true })
+                    }
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        task.completed && "line-through text-muted-foreground"
+                      )}
+                    >
+                      {task.title}
+                    </span>
+                    {task.due_date && (
+                      <p className="text-xs text-muted-foreground">
+                        Due {format(new Date(task.due_date), "MMM d, yyyy")}
+                      </p>
                     )}
-                  >
-                    {task.title}
-                  </span>
-                  {task.due_date && (
-                    <p className="text-xs text-muted-foreground">
-                      Due {format(new Date(task.due_date), "MMM d, yyyy")}
-                    </p>
+                  </div>
+                  {task.completed && (
+                    <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      +10 XP
+                    </span>
                   )}
                 </div>
-                {task.completed && (
-                  <span className="text-[10px] font-semibold text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    +10 XP
-                  </span>
-                )}
-              </label>
+                <div className="ml-6 mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-3 text-xs"
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        taskId: task.id,
+                        milestoneId: milestone.id,
+                        goalId: milestone.goal_id,
+                      });
+                      router.push(`/task-roadmap?${params.toString()}`);
+                    }}
+                  >
+                    Do it
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}

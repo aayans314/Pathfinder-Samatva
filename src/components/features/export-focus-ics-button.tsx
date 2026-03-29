@@ -18,8 +18,8 @@ export function ExportFocusIcsButton() {
     <Button
       type="button"
       variant="outline"
-      size="sm"
-      className="gap-1.5 text-xs h-8"
+      size="default"
+      className="gap-2 text-base h-11 px-5"
       onClick={() => {
         const start = new Date();
         start.setMinutes(start.getMinutes() + 5, 0, 0);
@@ -33,7 +33,7 @@ export function ExportFocusIcsButton() {
         downloadIcsFile(`pathfinder-focus-${top.id.slice(0, 8)}.ics`, ics);
       }}
     >
-      <CalendarPlus className="h-3.5 w-3.5" />
+      <CalendarPlus className="h-5 w-5" />
       Add top focus to calendar (.ics)
     </Button>
   );

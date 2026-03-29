@@ -110,13 +110,13 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage your profile and preferences.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-base text-muted-foreground">Manage your profile and preferences.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Profile</CardTitle>
+          <CardTitle className="text-lg">Profile</CardTitle>
           <CardDescription>Your public profile information visible to peers.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -152,7 +152,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Peer Matching</CardTitle>
+          <CardTitle className="text-lg">Peer Matching</CardTitle>
           <CardDescription>Control whether other users can discover you.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -164,7 +164,7 @@ export default function SettingsPage() {
                 setProfile((p) => ({ ...p, opt_in_matching: Boolean(checked) }))
               }
             />
-            <Label htmlFor="opt-in" className="text-sm cursor-pointer">
+            <Label htmlFor="opt-in" className="text-base cursor-pointer">
               Allow other users to find me based on shared goals
             </Label>
           </div>
@@ -173,7 +173,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Daily Reminders</CardTitle>
+          <CardTitle className="text-lg">Daily Reminders</CardTitle>
           <CardDescription>Get nudged to stay on track with your goals.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -185,7 +185,7 @@ export default function SettingsPage() {
                 setProfile((p) => ({ ...p, reminder_enabled: Boolean(checked) }))
               }
             />
-            <Label htmlFor="reminder" className="text-sm cursor-pointer">
+            <Label htmlFor="reminder" className="text-base cursor-pointer">
               Enable daily reminders
             </Label>
           </div>
@@ -201,10 +201,9 @@ export default function SettingsPage() {
                 }
                 className="w-40"
               />
-              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                Saving stores your preference. For the app to nudge you, also allow{" "}
-                <strong>browser notifications</strong> below (works while Pathfinder is open). Email
-                / push without the tab open needs a server job (not bundled here).
+              <p className="text-sm text-muted-foreground leading-relaxed pt-1">
+                Saving stores your preference. For nudges in the browser, also allow{" "}
+                <strong>notifications</strong> below (works while Pathfinder is open).
               </p>
             </div>
           )}
@@ -213,23 +212,23 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Browser notifications
           </CardTitle>
           <CardDescription>
-            Proactive nudges at your reminder time, using your top focus task from the graph.
+            Daily nudge at your reminder time with your top focus task.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             {notifPerm === "unsupported"
               ? "This browser does not support notifications."
               : notifPerm === "granted"
                 ? "Notifications are enabled for this browser."
                 : notifPerm === "denied"
-                  ? "Notifications were blocked. Reset permission in your browser site settings for this origin."
-                  : "Allow notifications so Pathfinder can surface one daily nudge when the dashboard is open."}
+                  ? "Notifications were blocked. Change site settings for this origin in your browser."
+                  : "Allow notifications for one daily nudge when the dashboard is open."}
           </p>
           {notifPerm !== "unsupported" && notifPerm !== "denied" && (
             <Button
@@ -247,17 +246,16 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Google Calendar (roadmap)</CardTitle>
+          <CardTitle className="text-lg">Google Calendar (roadmap)</CardTitle>
           <CardDescription>
-            Two-way sync (read busy times + write events) needs Google OAuth and stored tokens (
-            <code className="text-xs bg-muted px-1 rounded">calendar_connections</code> in Supabase).
+            Full two-way sync needs Google OAuth and stored tokens. Use the .ics export on Home
+            today.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Today you can <strong>export your top focus task as an .ics file</strong> from the Home
-            dashboard and open it in Google Calendar — no OAuth required. Automatic scheduling and
-            free-slot sync are follow-on work.
+          <p className="text-base text-muted-foreground leading-relaxed">
+            Export your top focus as a calendar file from the Home dashboard and import it into
+            Google Calendar.
           </p>
         </CardContent>
       </Card>

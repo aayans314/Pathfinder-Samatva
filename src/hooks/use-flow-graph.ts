@@ -3,100 +3,113 @@ import type { Node, Edge } from "@xyflow/react";
 import type { Milestone, Task } from "@/types/database";
 import type { MilestoneNodeData } from "@/components/features/milestone-node";
 
-const NODE_WIDTH = 260;
-const NODE_HEIGHT = 140;
-const HORIZONTAL_GAP = 80;
-const VERTICAL_GAP = 70;
+/** Approximate footprint for linear layout (dot + gap + card); keep in sync with milestone-node.tsx */
+const NODE_W = 410;
+const NODE_H = 240;
+const H_GAP = 160;
+const V_GAP = 60;
 
 function buildTree(milestones: Milestone[]) {
   const childrenMap = new Map<string | null, Milestone[]>();
   for (const m of milestones) {
-    const parentId = m.parent_milestone_id;
-    if (!childrenMap.has(parentId)) {
-      childrenMap.set(parentId, []);
-    }
-    childrenMap.get(parentId)!.push(m);
+    const pid = m.parent_milestone_id;
+    if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+    childrenMap.get(pid)!.push(m);
   }
-  for (const children of childrenMap.values()) {
-    children.sort((a, b) => a.order_index - b.order_index);
+  for (const c of childrenMap.values()) {
+    c.sort((a, b) => a.order_index - b.order_index);
   }
   return childrenMap;
 }
 
-interface LayoutResult {
+interface SubtreeResult {
   nodes: Node[];
-  width: number;
+  height: number;
 }
 
 function layoutSubtree(
-  milestoneId: string,
-  milestones: Map<string, Milestone>,
-  childrenMap: Map<string | null, Milestone[]>,
-  tasksByMilestone: Map<string, Task[]>,
+  id: string,
+  mMap: Map<string, Milestone>,
+  children: Map<string | null, Milestone[]>,
+  taskMap: Map<string, Task[]>,
   depth: number,
-  offsetX: number,
-  accentColor?: string
-): LayoutResult {
-  const milestone = milestones.get(milestoneId)!;
-  const children = childrenMap.get(milestoneId) ?? [];
-  const tasks = tasksByMilestone.get(milestoneId) ?? [];
+  offsetY: number,
+  counter: { v: number },
+  totalSteps: number,
+  accent?: string
+): SubtreeResult {
+  const m = mMap.get(id)!;
+  const kids = children.get(id) ?? [];
+  const tasks = taskMap.get(id) ?? [];
 
-  if (children.length === 0) {
+  counter.v += 1;
+  const step = counter.v;
+
+  const x = depth * (NODE_W + H_GAP);
+
+  if (kids.length === 0) {
     const node: Node = {
-      id: milestoneId,
+      id,
       type: "milestone",
-      position: { x: offsetX, y: depth * (NODE_HEIGHT + VERTICAL_GAP) },
+      position: { x, y: offsetY },
       data: {
-        label: milestone.title,
-        description: milestone.description,
-        status: milestone.status,
+        label: m.title,
+        description: m.description,
+        status: m.status,
         taskCount: tasks.length,
         completedTaskCount: tasks.filter((t) => t.completed).length,
-        accentColor,
+        accentColor: accent,
+        stepIndex: step,
+        totalSteps,
       } satisfies MilestoneNodeData,
     };
-    return { nodes: [node], width: NODE_WIDTH };
+    return { nodes: [node], height: NODE_H };
   }
 
-  const childResults: LayoutResult[] = [];
-  let childOffset = offsetX;
-
-  for (const child of children) {
-    const result = layoutSubtree(
-      child.id,
-      milestones,
-      childrenMap,
-      tasksByMilestone,
+  const kidResults: SubtreeResult[] = [];
+  let yOff = offsetY;
+  for (const kid of kids) {
+    const res = layoutSubtree(
+      kid.id,
+      mMap,
+      children,
+      taskMap,
       depth + 1,
-      childOffset,
-      accentColor
+      yOff,
+      counter,
+      totalSteps,
+      accent
     );
-    childResults.push(result);
-    childOffset += result.width + HORIZONTAL_GAP;
+    kidResults.push(res);
+    yOff += res.height + V_GAP;
   }
 
-  const totalChildWidth =
-    childResults.reduce((sum, r) => sum + r.width, 0) +
-    (childResults.length - 1) * HORIZONTAL_GAP;
+  const totalKidH =
+    kidResults.reduce((s, r) => s + r.height, 0) +
+    (kidResults.length - 1) * V_GAP;
 
-  const parentX = offsetX + totalChildWidth / 2 - NODE_WIDTH / 2;
+  const parentY = offsetY + totalKidH / 2 - NODE_H / 2;
 
   const parentNode: Node = {
-    id: milestoneId,
+    id,
     type: "milestone",
-    position: { x: parentX, y: depth * (NODE_HEIGHT + VERTICAL_GAP) },
+    position: { x, y: parentY },
     data: {
-      label: milestone.title,
-      description: milestone.description,
-      status: milestone.status,
+      label: m.title,
+      description: m.description,
+      status: m.status,
       taskCount: tasks.length,
       completedTaskCount: tasks.filter((t) => t.completed).length,
-      accentColor,
+      accentColor: accent,
+      stepIndex: step,
+      totalSteps,
     } satisfies MilestoneNodeData,
   };
 
-  const allNodes = [parentNode, ...childResults.flatMap((r) => r.nodes)];
-  return { nodes: allNodes, width: totalChildWidth };
+  return {
+    nodes: [parentNode, ...kidResults.flatMap((r) => r.nodes)],
+    height: totalKidH,
+  };
 }
 
 export function useFlowGraph(
@@ -105,48 +118,46 @@ export function useFlowGraph(
   accentColor?: string
 ) {
   return useMemo(() => {
-    if (milestones.length === 0) {
-      return { nodes: [], edges: [] };
-    }
+    if (milestones.length === 0) return { nodes: [], edges: [] };
 
-    const milestoneMap = new Map(milestones.map((m) => [m.id, m]));
+    const mMap = new Map(milestones.map((m) => [m.id, m]));
     const childrenMap = buildTree(milestones);
-    const tasksByMilestone = new Map<string, Task[]>();
+    const taskMap = new Map<string, Task[]>();
     for (const t of tasks) {
-      if (!tasksByMilestone.has(t.milestone_id)) {
-        tasksByMilestone.set(t.milestone_id, []);
-      }
-      tasksByMilestone.get(t.milestone_id)!.push(t);
+      if (!taskMap.has(t.milestone_id)) taskMap.set(t.milestone_id, []);
+      taskMap.get(t.milestone_id)!.push(t);
     }
 
     const roots = childrenMap.get(null) ?? [];
+    const totalSteps = milestones.length;
+    const counter = { v: 0 };
     const allNodes: Node[] = [];
-    let currentOffsetX = 0;
+    let yOffset = 0;
 
     for (const root of roots) {
-      const result = layoutSubtree(
+      const res = layoutSubtree(
         root.id,
-        milestoneMap,
+        mMap,
         childrenMap,
-        tasksByMilestone,
+        taskMap,
         0,
-        currentOffsetX,
+        yOffset,
+        counter,
+        totalSteps,
         accentColor
       );
-      allNodes.push(...result.nodes);
-      currentOffsetX += result.width + HORIZONTAL_GAP * 2;
+      allNodes.push(...res.nodes);
+      yOffset += res.height + V_GAP * 2;
     }
 
     const edges: Edge[] = milestones
       .filter((m) => m.parent_milestone_id !== null)
       .map((m) => {
-        const parent = milestoneMap.get(m.parent_milestone_id!);
-        const parentStatus = parent?.status;
-        const isCompleted = parentStatus === "completed";
+        const parentStatus = mMap.get(m.parent_milestone_id!)?.status;
+        const isDone = parentStatus === "completed";
         const isActive =
-          (m.status === "in_progress" || parentStatus === "in_progress") &&
-          m.status !== "paused" &&
-          parentStatus !== "paused";
+          m.status === "in_progress" || parentStatus === "in_progress";
+        const isLocked = m.status === "locked" && parentStatus === "locked";
 
         return {
           id: `e-${m.parent_milestone_id}-${m.id}`,
@@ -155,12 +166,15 @@ export function useFlowGraph(
           type: "smoothstep",
           animated: isActive,
           style: {
-            stroke: isCompleted
-              ? "#f59e0b" // golden path for completed
+            stroke: isDone
+              ? "#fbbf24"
               : isActive
-                ? accentColor || "#3b82f6"
-                : "#d1d5db",
-            strokeWidth: isCompleted ? 3 : 2,
+                ? accentColor || "#22d3ee"
+                : isLocked
+                  ? "rgba(100,116,139,0.2)"
+                  : "rgba(148,163,184,0.35)",
+            strokeWidth: isDone ? 4 : isActive ? 3.5 : 2,
+            strokeLinecap: "round" as const,
           },
         };
       });

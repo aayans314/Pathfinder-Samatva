@@ -16,10 +16,10 @@ export function CategoryHeader({
   return (
     <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">
+        <h2 className="text-xl font-semibold tracking-tight">
           {config.label}
         </h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <p className="text-base text-muted-foreground mt-0.5">
           {stats.completedMilestones}/{stats.totalMilestones} milestones
           <span className="mx-1.5 text-border">·</span>
           {stats.completedTasks}/{stats.totalTasks} tasks
@@ -37,7 +37,7 @@ export function CategoryHeader({
             }}
           />
         </div>
-        <span className="text-sm tabular-nums text-muted-foreground">
+        <span className="text-base tabular-nums text-muted-foreground">
           {stats.completionPercent}%
         </span>
       </div>

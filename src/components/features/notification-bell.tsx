@@ -82,12 +82,12 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative h-8 w-8"
+        className="relative h-9 w-9"
         onClick={() => setOpen(!open)}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
+          <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center">
             {unreadCount}
           </Badge>
         )}
@@ -96,10 +96,10 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border bg-popover p-0 shadow-md z-50">
           <div className="flex items-center justify-between px-3 py-2 border-b">
-            <span className="text-sm font-semibold">Notifications</span>
+            <span className="text-base font-semibold">Notifications</span>
             {unreadCount > 0 && (
               <button
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
                 onClick={markAllRead}
               >
                 <Check className="h-3 w-3" />
@@ -112,7 +112,7 @@ export function NotificationBell() {
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+            <div className="px-3 py-6 text-center text-base text-muted-foreground">
               No notifications yet.
             </div>
           ) : (
@@ -132,16 +132,16 @@ export function NotificationBell() {
                     {!n.read && (
                       <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                     )}
-                    <span className={cn("text-sm font-medium flex-1", n.read && "text-muted-foreground")}>
+                    <span className={cn("text-base font-medium flex-1", n.read && "text-muted-foreground")}>
                       {n.title}
                     </span>
                   </div>
                   {n.body && (
-                    <span className="text-xs text-muted-foreground line-clamp-2 pl-4">
+                    <span className="text-sm text-muted-foreground line-clamp-2 pl-4">
                       {n.body}
                     </span>
                   )}
-                  <span className="text-[10px] text-muted-foreground/70 pl-4">
+                  <span className="text-xs text-muted-foreground/70 pl-4">
                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                   </span>
                 </button>

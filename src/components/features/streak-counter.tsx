@@ -99,7 +99,7 @@ export function StreakCounter() {
     <div className="flex items-center gap-2">
       <div
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all",
+          "flex items-center gap-1.5 rounded-full px-3.5 py-2 text-base font-semibold transition-all",
           isActive
             ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
             : "bg-muted text-muted-foreground"
@@ -107,7 +107,7 @@ export function StreakCounter() {
       >
         <Flame
           className={cn(
-            "h-4 w-4",
+            "h-5 w-5",
             isActive && "text-amber-500",
             streak.current_streak >= 7 && "animate-pulse"
           )}
@@ -115,12 +115,12 @@ export function StreakCounter() {
         <span>{streak.current_streak}</span>
       </div>
       {streak.longest_streak > streak.current_streak && (
-        <Badge variant="outline" className="text-[10px]">
+        <Badge variant="outline" className="text-xs px-2 py-0.5">
           Best: {streak.longest_streak}
         </Badge>
       )}
       {celebration && (
-        <span className="text-sm font-bold text-amber-500 animate-bounce">
+        <span className="text-base font-bold text-amber-500 animate-bounce">
           {celebration}
         </span>
       )}

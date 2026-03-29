@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   GitBranch,
-  Scale,
   Users,
+  UsersRound,
   Settings,
   Compass,
   LogOut,
@@ -30,8 +30,8 @@ import { createClient } from "@/lib/supabase/browser";
 const NAV_ITEMS = [
   { title: "Home", href: "/", icon: LayoutDashboard },
   { title: "Path", href: "/my-path", icon: GitBranch },
-  { title: "Decisions", href: "/decisions", icon: Scale },
   { title: "Peers", href: "/peers", icon: Users },
+  { title: "Groups", href: "/groups", icon: UsersRound },
 ] as const;
 
 export function AppSidebar() {
@@ -59,17 +59,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Compass className="h-5 w-5" />
-          <span className="font-semibold tracking-tight">Pathfinder</span>
+      <SidebarHeader className="px-5 py-6">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Compass className="h-6 w-6" />
+          <span className="text-xl font-semibold tracking-tight">Pathfinder</span>
         </Link>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-2 px-2">
               {NAV_ITEMS.map((item) => {
                 const isActive =
                   item.href === "/"
@@ -82,8 +82,10 @@ export function AppSidebar() {
                       render={<Link href={item.href} />}
                       isActive={isActive}
                       tooltip={item.title}
+                      size="lg"
+                      className="rounded-xl px-3 [&>span]:text-base [&>span]:font-medium"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -94,15 +96,17 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-1">
-        <SidebarMenu>
+      <SidebarFooter className="border-t border-sidebar-border px-3 py-4 space-y-2">
+        <SidebarMenu className="gap-2">
           <SidebarMenuItem>
             <SidebarMenuButton
               render={<Link href="/settings" />}
               isActive={pathname === "/settings"}
               tooltip="Settings"
+              size="lg"
+              className="rounded-xl px-3 [&>span]:text-base [&>span]:font-medium"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-5 w-5" />
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -110,15 +114,16 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={handleLogout}
               tooltip="Log Out"
-              className="text-muted-foreground hover:text-destructive"
+              size="lg"
+              className="rounded-xl px-3 text-muted-foreground hover:text-destructive [&>span]:text-base [&>span]:font-medium"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5" />
               <span>Log Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {userName && (
-          <p className="text-xs text-muted-foreground truncate px-2 pt-1">
+          <p className="text-base text-muted-foreground truncate px-2 pt-1.5">
             {userName}
           </p>
         )}

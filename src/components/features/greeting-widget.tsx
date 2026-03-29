@@ -5,6 +5,13 @@ import { useCurrentUser, useStats } from "@/hooks/use-goals";
 import { createClient } from "@/lib/supabase/browser";
 import { format } from "date-fns";
 
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export function GreetingWidget() {
   const mockUser = useCurrentUser();
   const stats = useStats();
@@ -29,19 +36,19 @@ export function GreetingWidget() {
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground">{today}</p>
-      <h1 className="text-2xl font-semibold tracking-tight mt-0.5">
-        Welcome back, {firstName}
+      <p className="text-lg text-muted-foreground">{today}</p>
+      <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mt-1">
+        {timeGreeting()}, {firstName}
       </h1>
       {stats.completionPercent > 0 && (
-        <div className="flex items-center gap-3 mt-3">
-          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-xs">
+        <div className="flex items-center gap-3 mt-4">
+          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden max-w-xs">
             <div
-              className="h-full rounded-full bg-foreground/70 transition-all duration-700"
+              className="h-full rounded-full bg-primary transition-all duration-700"
               style={{ width: `${stats.completionPercent}%` }}
             />
           </div>
-          <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="text-base text-muted-foreground tabular-nums">
             {stats.completionPercent}% overall
           </span>
         </div>

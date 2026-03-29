@@ -129,7 +129,7 @@ export function NavigatorChat() {
         <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] flex flex-col bg-background border rounded-xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-            <h3 className="font-medium text-sm">Navigator</h3>
+            <h3 className="font-semibold text-base">Navigator</h3>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -162,7 +162,7 @@ export function NavigatorChat() {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                  className={`max-w-[85%] rounded-lg px-3 py-2.5 text-base leading-relaxed ${
                     msg.role === "user"
                       ? "bg-foreground text-background"
                       : "bg-muted"
@@ -199,7 +199,7 @@ export function NavigatorChat() {
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
                   disabled={isLoading}
-                  className="text-xs border rounded-md px-2.5 py-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="text-sm border rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   {prompt}
                 </button>
@@ -218,7 +218,7 @@ export function NavigatorChat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-ring"
+                className="flex-1 bg-muted rounded-lg px-3 py-2.5 text-base outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-ring"
               />
               <Button
                 size="icon"

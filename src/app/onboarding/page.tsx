@@ -430,7 +430,7 @@ export default function OnboardingPage() {
     }
 
     // 5. Update Zustand store for immediate UI feedback
-    clearAndSetPaths(storeGoals, storeMilestones, storeTasks);
+    clearAndSetPaths(storeGoals, storeMilestones, storeTasks, realUserId);
     
     // 6. Go to Dashboard
     router.push("/");
@@ -706,6 +706,7 @@ export default function OnboardingPage() {
                 {generatedPaths.map((path, idx) => {
                   const config = CATEGORY_CONFIG[path.category] || CATEGORY_CONFIG.personal;
                   const isRemoved = removedPathIndices.has(idx);
+                  const pathIndexLabel = String.fromCharCode(65 + (idx % 26));
 
                   return (
                     <Card
@@ -719,14 +720,20 @@ export default function OnboardingPage() {
                       <div className={`h-1.5 w-full bg-gradient-to-r ${config.gradient}`} />
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xl">{config.emoji}</span>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div
+                              className="h-11 w-11 shrink-0 rounded-xl border border-indigo-200/80 bg-linear-to-br from-indigo-50 to-cyan-50 text-indigo-700 flex items-center justify-center text-2xl font-extrabold leading-none shadow-sm"
+                              aria-label={`Path ${pathIndexLabel}`}
+                            >
+                              {pathIndexLabel}
+                            </div>
                             <div>
                               <h3 className="font-semibold text-lg leading-tight">
                                 {path.goalTitle}
                               </h3>
-                              <Badge variant="secondary" className="text-xs mt-1">
-                                {path.category}
+                              <Badge variant="secondary" className="text-xs mt-1 gap-1">
+                                <span>{config.emoji}</span>
+                                <span>{path.category}</span>
                               </Badge>
                             </div>
                           </div>

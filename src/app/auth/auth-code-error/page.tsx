@@ -20,7 +20,11 @@ export default function AuthCodeErrorPage() {
             expired or the authentication provider returned an error.
           </p>
         </div>
-        <Button render={<Link href="/login" />} className="w-full">
+        <Button
+          nativeButton={false}
+          render={<Link href="/login" />}
+          className="w-full"
+        >
           Try Again
         </Button>
       </div>
