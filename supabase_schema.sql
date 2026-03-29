@@ -7,6 +7,7 @@ CREATE TABLE public.profiles (
     opt_in_matching BOOLEAN DEFAULT false,
     reminder_enabled BOOLEAN DEFAULT false,
     reminder_time TIME DEFAULT '09:00',
+    resume_data JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

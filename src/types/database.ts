@@ -14,12 +14,36 @@ export type GoalCategory =
   | "networking"
   | "personal";
 
+export interface ResumeData {
+  email?: string;
+  phone?: string;
+  summary?: string;
+  skills?: string[];
+  experience?: Array<{
+    title: string;
+    company: string;
+    duration: string;
+    highlights: string[];
+  }>;
+  education?: Array<{
+    degree: string;
+    institution: string;
+    year: string;
+  }>;
+  certifications?: string[];
+  projects?: Array<{
+    name: string;
+    description: string;
+  }>;
+}
+
 export interface User {
   id: string;
   name: string;
   bio: string | null;
   target_visa: string | null;
   opt_in_matching: boolean;
+  resume_data?: ResumeData;
   created_at: string;
 }
 

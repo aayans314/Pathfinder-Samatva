@@ -26,6 +26,7 @@ interface AppState {
   goals: Goal[];
   milestones: Milestone[];
   tasks: Task[];
+  profile: User | null;
   dailyGoals: DailyGoal[];
   decisions: Decision[];
 
@@ -56,6 +57,7 @@ interface AppState {
 
   setInitialData: (
     userId: string,
+    profile: User | null,
     goals: Goal[],
     milestones: Milestone[],
     tasks: Task[],
@@ -78,6 +80,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   goals: mockGoals,
   milestones: mockMilestones,
   tasks: mockTasks,
+  profile: null,
   dailyGoals: mockDailyGoals,
   decisions: [],
 
@@ -359,9 +362,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
     }),
 
-  setInitialData: (userId, newGoals, newMilestones, newTasks, newDailyGoals, newDecisions) =>
+  setInitialData: (userId, profile, newGoals, newMilestones, newTasks, newDailyGoals, newDecisions) =>
     set({
       currentUserId: userId,
+      profile,
       goals: newGoals,
       milestones: newMilestones,
       tasks: newTasks,

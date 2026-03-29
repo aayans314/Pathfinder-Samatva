@@ -289,6 +289,7 @@ export default function OnboardingPage() {
       bio: bio || null,
       target_visa: "Any", // Defaulting for hackathon demo
       opt_in_matching: true,
+      resume_data: resumeParsed || {},
     });
 
     if (profileError) {

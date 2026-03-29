@@ -30,7 +30,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         if (!goals || goals.length === 0) {
           if (isMounted) {
-            setInitialData(user.id, [], [], [], [], []);
+            setInitialData(user.id, null, [], [], [], [], []);
             setIsLoading(false);
           }
           return;
@@ -57,6 +57,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           tasks = tasksData || [];
         }
 
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
         const { data: dailyGoals } = await supabase
           .from("daily_goals")
           .select("*")
@@ -70,9 +76,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (isMounted) {
           setInitialData(
             user.id,
+            profile,
             goals,
             milestones || [],
-            tasks as Parameters<typeof setInitialData>[3],
+            tasks as Parameters<typeof setInitialData>[4],
             dailyGoals || [],
             decisions || []
           );

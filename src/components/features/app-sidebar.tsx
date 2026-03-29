@@ -8,6 +8,7 @@ import {
   GitBranch,
   Users,
   UsersRound,
+  UserCircle,
   Settings,
   Compass,
   LogOut,
@@ -30,6 +31,7 @@ import { createClient } from "@/lib/supabase/browser";
 const NAV_ITEMS = [
   { title: "Home", href: "/", icon: LayoutDashboard },
   { title: "Path", href: "/my-path", icon: GitBranch },
+  { title: "Profile", href: "/profile", icon: UserCircle },
   { title: "Peers", href: "/peers", icon: Users },
   { title: "Groups", href: "/groups", icon: UsersRound },
 ] as const;
