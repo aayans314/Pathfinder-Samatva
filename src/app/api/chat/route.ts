@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Guardrail: detect prompt injection attempts
 const INJECTION_PATTERNS = [

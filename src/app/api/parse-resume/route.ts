@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
 import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {
