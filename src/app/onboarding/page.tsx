@@ -294,7 +294,7 @@ export default function OnboardingPage() {
 
     if (profileError) {
       console.error("Error upserting profile:", profileError);
-      alert("Database error: Could not create your profile.");
+      alert(`Database error: Could not create your profile. ${profileError.message}`);
       return;
     }
 
