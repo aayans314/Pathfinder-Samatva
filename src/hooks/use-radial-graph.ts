@@ -132,17 +132,19 @@ export function useRadialGraph(
       layoutRadialSubtree(root.id, 1, angle);
 
       const accentColor = getCategoryColor(root.goal_id);
+      const rootMs = milestoneMap.get(root.id);
+      const rootActive = rootMs?.status === "in_progress";
 
       edges.push({
         id: `e-${HUB_ID}-${root.id}`,
         source: HUB_ID,
         target: root.id,
         type: "bezier",
-        animated: true,
+        animated: !!rootActive,
         style: {
           stroke: accentColor,
           strokeWidth: 2,
-          opacity: 0.6,
+          opacity: rootMs?.status === "paused" ? 0.25 : 0.6,
         },
       });
     });
@@ -150,9 +152,13 @@ export function useRadialGraph(
     milestones
       .filter((m) => m.parent_milestone_id !== null)
       .forEach((m) => {
-        const parentStatus = milestoneMap.get(m.parent_milestone_id!)?.status;
+        const parent = milestoneMap.get(m.parent_milestone_id!);
+        const parentStatus = parent?.status;
         const isCompleted = parentStatus === "completed";
-        const isActive = m.status === "in_progress" || parentStatus === "in_progress";
+        const isActive =
+          (m.status === "in_progress" || parentStatus === "in_progress") &&
+          m.status !== "paused" &&
+          parentStatus !== "paused";
 
         const accentColor = getCategoryColor(m.goal_id);
 

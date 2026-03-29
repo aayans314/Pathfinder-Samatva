@@ -8,6 +8,7 @@ import { LifeSectionCard } from "@/components/features/life-section-card";
 import { TodaysFocus } from "@/components/features/todays-focus";
 import { SectionDetailDialog } from "@/components/features/section-detail-dialog";
 import { WeeklyReportDialog } from "@/components/features/weekly-report-dialog";
+import { ProactiveStrip } from "@/components/features/proactive-strip";
 import type { GoalCategory } from "@/types/database";
 
 export default function DashboardPage() {
@@ -23,6 +24,8 @@ export default function DashboardPage() {
         <GreetingWidget />
         <WeeklyReportDialog />
       </div>
+
+      <ProactiveStrip />
 
       {/* Main two-column layout */}
       <div className="grid gap-10 lg:grid-cols-[1fr_280px]">

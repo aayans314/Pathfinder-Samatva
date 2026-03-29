@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
 // Guardrail: detect prompt injection attempts
 const INJECTION_PATTERNS = [
@@ -72,6 +67,8 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    const openai = getDeepSeekClient();
 
     // Check the latest user message for prompt injection
     const lastUserMessage = messages[messages.length - 1];

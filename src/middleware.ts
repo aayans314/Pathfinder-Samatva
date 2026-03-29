@@ -2,8 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  // If no env vars, don't break the app (mock mode hackathon state)
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  // If Supabase is not configured, skip auth middleware (local static demo)
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  ) {
     return NextResponse.next();
   }
   return await updateSession(request);

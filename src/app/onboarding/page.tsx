@@ -27,13 +27,14 @@ import { createClient } from "@/lib/supabase/browser";
 import { useAppStore } from "@/lib/store";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 import type { GoalCategory, Goal, Milestone, Task } from "@/types/database";
+import {
+  normalizeGeneratedPaths,
+  getTimeFrameLabel,
+  type NormalizedPath,
+} from "@/lib/ai/generated-path";
 
 // ── Types ──────────────────────────────────────────────
-interface GeneratedPath {
-  category: GoalCategory;
-  goalTitle: string;
-  milestones: string[];
-}
+type GeneratedPath = NormalizedPath;
 
 type OnboardingStep = "welcome" | "goals" | "generating" | "review";
 
@@ -94,7 +95,7 @@ function StepIndicator({ current, steps }: { current: number; steps: string[] })
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
-  const { clearAndSetPaths, currentUserId } = useAppStore();
+  const { clearAndSetPaths } = useAppStore();
 
   const [step, setStep] = useState<OnboardingStep>("welcome");
   const [userName, setUserName] = useState("");
@@ -233,28 +234,33 @@ export default function OnboardingPage() {
           bio,
           goals: validGoals,
           resumeContext: resumeContext || undefined,
+          resumeStructured: resumeParsed || undefined,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to generate paths");
       const data = await res.json();
-      setGeneratedPaths(data.paths || []);
+      setGeneratedPaths(normalizeGeneratedPaths(data));
       setStep("review");
     } catch (error) {
       console.error(error);
-      // Fallback paths for demo resilience
       setGeneratedPaths(
-        validGoals.map((goal, i) => ({
-          category: (["career", "academics", "fitness", "personal", "networking"] as GoalCategory[])[
-            i % 5
-          ],
-          goalTitle: goal,
-          milestones: [
-            `Research and plan for: ${goal}`,
-            `Take first concrete steps toward: ${goal}`,
-            `Achieve measurable progress on: ${goal}`,
-          ],
-        }))
+        normalizeGeneratedPaths({
+          paths: validGoals.map((goal, i) => ({
+            category: (["career", "academics", "fitness", "personal", "networking"] as GoalCategory[])[
+              i % 5
+            ],
+            goalTitle: goal,
+            goalHorizonYears: 5,
+            pathSummary: "Offline fallback — regenerate when API is available.",
+            personalizedPathIntro: "Reconnect when online for a full 7-horizon plan tailored to you.",
+            milestones: [
+              `Today: one concrete step for: ${goal.slice(0, 60)}`,
+              `This week: schedule focus time for this goal`,
+              `This month: define a measurable milestone`,
+            ],
+          })),
+        })
       );
       setStep("review");
     }
@@ -292,26 +298,57 @@ export default function OnboardingPage() {
     }
 
     // 3. Prepare data for Supabase and Zustand
-    const goalsToInsert: any[] = [];
-    const milestonesToInsert: any[] = [];
-    const tasksToInsert: any[] = [];
+    type GoalRow = {
+      id: string;
+      user_id: string;
+      title: string;
+      category: string;
+      status: string;
+      target_date: string;
+    };
+    type MilestoneRow = {
+      id: string;
+      goal_id: string;
+      title: string;
+      description: string;
+      status: string;
+      order_index: number;
+      parent_milestone_id: string | null;
+    };
+    type TaskRow = {
+      id: string;
+      milestone_id: string;
+      title: string;
+      completed: boolean;
+      sort_order: number;
+    };
+    const goalsToInsert: GoalRow[] = [];
+    const milestonesToInsert: MilestoneRow[] = [];
+    const tasksToInsert: TaskRow[] = [];
 
     const storeGoals: (Omit<Goal, "created_at"> & { id: string })[] = [];
     const storeMilestones: (Omit<Milestone, "created_at"> & { id: string })[] = [];
     const storeTasks: Omit<Task, "id" | "created_at">[] = [];
 
-    const oneYearFromNow = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
+    const defaultHorizonMs = 1000 * 60 * 60 * 24 * 365;
 
     for (const path of acceptedPaths) {
       const goalId = crypto.randomUUID();
-      
+      const years =
+        typeof path.goalHorizonYears === "number" && path.goalHorizonYears > 0
+          ? path.goalHorizonYears
+          : 10;
+      const targetDate = new Date(
+        Date.now() + defaultHorizonMs * years
+      ).toISOString();
+
       const dbGoal = {
         id: goalId,
         user_id: realUserId,
         title: path.goalTitle,
         category: path.category,
         status: "active",
-        target_date: oneYearFromNow,
+        target_date: targetDate,
       };
       
       goalsToInsert.push(dbGoal);
@@ -322,35 +359,52 @@ export default function OnboardingPage() {
       });
 
       let prevMilestoneId: string | null = null;
-      path.milestones.forEach((mTitle, mIdx) => {
+      path.milestones.forEach((milestone, mIdx) => {
         const milestoneId = crypto.randomUUID();
-        
+        const descParts = [
+          milestone.personalizedNote ? `For you: ${milestone.personalizedNote}` : null,
+          milestone.horizonLabel ? `Horizon: ${milestone.horizonLabel}` : null,
+          milestone.description || null,
+          path.personalizedPathIntro ? `Plan: ${path.personalizedPathIntro}` : null,
+          path.pathSummary ? `Summary: ${path.pathSummary}` : null,
+        ].filter(Boolean);
+        const description =
+          descParts.length > 0
+            ? descParts.join(" · ")
+            : `Phase for "${path.goalTitle}"`;
+
         const dbMilestone = {
           id: milestoneId,
           goal_id: goalId,
-          title: mTitle,
-          description: `AI-generated milestone for "${path.goalTitle}"`,
+          title: milestone.title,
+          description,
           status: mIdx === 0 ? "in_progress" : "locked",
           order_index: mIdx,
           parent_milestone_id: prevMilestoneId,
         };
-        
-        milestonesToInsert.push(dbMilestone);
-        storeMilestones.push(dbMilestone as any);
 
-        const dbTask = {
-          id: crypto.randomUUID(),
-          milestone_id: milestoneId,
-          title: `Start: ${mTitle}`,
-          completed: false,
-        };
-        
-        tasksToInsert.push(dbTask);
-        storeTasks.push({
-          milestone_id: milestoneId,
-          title: `Start: ${mTitle}`,
-          completed: false,
-          due_date: null,
+        milestonesToInsert.push(dbMilestone);
+        storeMilestones.push(
+          dbMilestone as Omit<Milestone, "created_at"> & { id: string }
+        );
+
+        milestone.substeps.forEach((sub, subIdx) => {
+          const tid = crypto.randomUUID();
+          const row = {
+            id: tid,
+            milestone_id: milestoneId,
+            title: sub,
+            completed: false,
+            sort_order: subIdx,
+          };
+          tasksToInsert.push(row);
+          storeTasks.push({
+            milestone_id: milestoneId,
+            title: sub,
+            completed: false,
+            due_date: null,
+            sort_order: subIdx,
+          });
         });
 
         prevMilestoneId = milestoneId;
@@ -698,19 +752,61 @@ export default function OnboardingPage() {
                           </Button>
                         </div>
                         {!isRemoved && (
-                          <div className="pl-8 mt-2">
-                            <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">
-                              Milestones
+                          <div className="pl-8 mt-2 space-y-3 text-left">
+                            {path.personalizedPathIntro && (
+                              <p className="text-sm text-foreground/95 leading-snug rounded-md bg-indigo-500/10 border border-indigo-500/20 px-3 py-2">
+                                <span className="font-medium text-indigo-800 dark:text-indigo-200">
+                                  For you:{" "}
+                                </span>
+                                {path.personalizedPathIntro}
+                              </p>
+                            )}
+                            {!path.personalizedPathIntro && path.pathSummary && (
+                              <p className="text-sm text-foreground/90 leading-snug">
+                                {path.pathSummary}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                              7 time horizons · to-dos
                             </p>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
+                            <ul className="space-y-3 text-sm text-muted-foreground">
                               {path.milestones.map((m, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <div className="w-5 h-5 rounded-full border-2 border-indigo-300 flex items-center justify-center shrink-0 mt-0.5">
-                                    <span className="text-[10px] font-bold text-indigo-500">
-                                      {i + 1}
-                                    </span>
+                                <li
+                                  key={m.timeFrameId ?? i}
+                                  className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <div className="w-6 h-6 rounded-full border-2 border-indigo-300 flex items-center justify-center shrink-0 mt-0.5">
+                                      <span className="text-[10px] font-bold text-indigo-500">
+                                        {i + 1}
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <Badge variant="outline" className="text-[10px] font-normal">
+                                          {getTimeFrameLabel(m)}
+                                        </Badge>
+                                      </div>
+                                      <p className="font-medium text-foreground leading-snug mt-1">
+                                        {m.title}
+                                      </p>
+                                      {m.personalizedNote && (
+                                        <p className="text-xs text-indigo-700/90 dark:text-indigo-300/90 mt-1 leading-snug">
+                                          {m.personalizedNote}
+                                        </p>
+                                      )}
+                                      {m.description && (
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                          {m.description}
+                                        </p>
+                                      )}
+                                      <ul className="mt-2 space-y-1 list-disc list-inside text-xs text-muted-foreground">
+                                        {m.substeps.map((s, j) => (
+                                          <li key={j}>{s}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
                                   </div>
-                                  {m}
                                 </li>
                               ))}
                             </ul>

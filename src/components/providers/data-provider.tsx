@@ -8,10 +8,10 @@ import { Loader2 } from "lucide-react";
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const setInitialData = useAppStore((state) => state.setInitialData);
-  const supabase = createClient();
 
   useEffect(() => {
     let isMounted = true;
+    const supabase = createClient();
 
     async function loadData() {
       try {
@@ -91,7 +91,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [setInitialData, supabase]);
+  }, [setInitialData]);
 
   if (isLoading) {
     return (

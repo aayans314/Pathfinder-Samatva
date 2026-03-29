@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
-
-const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
 export async function POST() {
   try {
@@ -16,6 +11,7 @@ export async function POST() {
       );
     }
 
+    const openai = getDeepSeekClient();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 

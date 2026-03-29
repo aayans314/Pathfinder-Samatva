@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Save } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Save, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,14 @@ export default function SettingsPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifPerm, setNotifPerm] = useState<
+    NotificationPermission | "unsupported"
+  >(
+    typeof Notification !== "undefined"
+      ? Notification.permission
+      : "unsupported"
+  );
+
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     bio: "",
@@ -60,6 +68,12 @@ export default function SettingsPage() {
     }
     loadProfile();
   }, [supabase]);
+
+  const requestBrowserNotification = useCallback(async () => {
+    if (typeof Notification === "undefined") return;
+    const r = await Notification.requestPermission();
+    setNotifPerm(r);
+  }, []);
 
   async function handleSave() {
     setSaving(true);
@@ -187,8 +201,64 @@ export default function SettingsPage() {
                 }
                 className="w-40"
               />
+              <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                Saving stores your preference. For the app to nudge you, also allow{" "}
+                <strong>browser notifications</strong> below (works while Pathfinder is open). Email
+                / push without the tab open needs a server job (not bundled here).
+              </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Browser notifications
+          </CardTitle>
+          <CardDescription>
+            Proactive nudges at your reminder time, using your top focus task from the graph.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {notifPerm === "unsupported"
+              ? "This browser does not support notifications."
+              : notifPerm === "granted"
+                ? "Notifications are enabled for this browser."
+                : notifPerm === "denied"
+                  ? "Notifications were blocked. Reset permission in your browser site settings for this origin."
+                  : "Allow notifications so Pathfinder can surface one daily nudge when the dashboard is open."}
+          </p>
+          {notifPerm !== "unsupported" && notifPerm !== "denied" && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void requestBrowserNotification()}
+              disabled={notifPerm === "granted"}
+            >
+              {notifPerm === "granted" ? "Already enabled" : "Allow browser notifications"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Google Calendar (roadmap)</CardTitle>
+          <CardDescription>
+            Two-way sync (read busy times + write events) needs Google OAuth and stored tokens (
+            <code className="text-xs bg-muted px-1 rounded">calendar_connections</code> in Supabase).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Today you can <strong>export your top focus task as an .ics file</strong> from the Home
+            dashboard and open it in Google Calendar — no OAuth required. Automatic scheduling and
+            free-slot sync are follow-on work.
+          </p>
         </CardContent>
       </Card>
 

@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  baseURL: "https://api.deepseek.com",
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+import { getDeepSeekClient } from "@/lib/openai-deepseek";
 
 export async function POST(req: Request) {
   try {
@@ -48,6 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ resumeText: rawText.trim() });
     }
 
+    const openai = getDeepSeekClient();
     const completion = await openai.chat.completions.create({
       model: "deepseek-chat",
       response_format: { type: "json_object" },

@@ -34,7 +34,7 @@ CREATE TABLE public.goals (
 
 -- Milestone Status Enum
 CREATE TYPE milestone_status AS ENUM (
-    'locked', 'in_progress', 'completed'
+    'locked', 'in_progress', 'paused', 'completed'
 );
 
 -- Milestones Table (The Nodes in our Tree)
@@ -56,8 +56,13 @@ CREATE TABLE public.tasks (
     title TEXT NOT NULL,
     completed BOOLEAN DEFAULT false,
     due_date TIMESTAMP WITH TIME ZONE,
+    sort_order INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Existing deployments: add enum value + column (safe to run once)
+-- ALTER TYPE milestone_status ADD VALUE IF NOT EXISTS 'paused';
+-- ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0 NOT NULL;
 
 -- Enable Row Level Security
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;

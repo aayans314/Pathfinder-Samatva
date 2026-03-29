@@ -26,6 +26,7 @@ import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/browser";
 import type { GoalCategory, Goal, Milestone, Task } from "@/types/database";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
+import { normalizeGeneratedPaths } from "@/lib/ai/generated-path";
 
 interface AddPathDialogProps {
   onSuccess?: (category: GoalCategory) => void;
@@ -56,18 +57,27 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: "User",
-          bio: "",
-          primary_goal: `${title} in the ${category} category. User says they need to do: ${steps}. Break this into 1 ultimate goal and 3-4 milestones.`,
+          bio: `Category: ${category}. User notes: ${steps}`,
+          goals: [`${title}. Context: ${steps}`],
         }),
       });
 
       if (!res.ok) throw new Error("Failed to generate path");
 
       const data = await res.json();
-      const generatedPath = data.paths[0];
+      const paths = normalizeGeneratedPaths(data);
+      const generatedPath = paths[0];
+      if (!generatedPath) throw new Error("No path generated");
 
       const goalId = crypto.randomUUID();
-      const targetDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
+      const years =
+        typeof generatedPath.goalHorizonYears === "number" &&
+        generatedPath.goalHorizonYears > 0
+          ? generatedPath.goalHorizonYears
+          : 5;
+      const targetDate = new Date(
+        Date.now() + 1000 * 60 * 60 * 24 * 365 * years
+      ).toISOString();
 
       const newGoal: Omit<Goal, "created_at"> = {
         id: goalId,
@@ -78,81 +88,50 @@ export function AddPathDialog({ onSuccess }: AddPathDialogProps) {
         target_date: targetDate,
       };
 
-      const milestones = generatedPath.milestones || [
-        `Research & Preparation`,
-        ...steps.split("\n").filter(Boolean),
-        `Achieve ${title}`
-      ];
-
       const milestonesToCreate: (Omit<Milestone, "created_at"> & { id: string })[] = [];
       const tasksToCreate: Omit<Task, "id" | "created_at">[] = [];
       let currentParentId: string | null = null;
 
-      for (let orderIndex = 0; orderIndex < milestones.length; orderIndex++) {
-        const mTitle = milestones[orderIndex];
+      generatedPath.milestones.forEach((ms, orderIndex) => {
         const milestoneId = crypto.randomUUID();
+        const descParts = [
+          ms.personalizedNote ? `For you: ${ms.personalizedNote}` : null,
+          ms.horizonLabel ? `Horizon: ${ms.horizonLabel}` : null,
+          ms.description || null,
+          generatedPath.personalizedPathIntro
+            ? `Plan: ${generatedPath.personalizedPathIntro}`
+            : null,
+        ].filter(Boolean);
+        const description =
+          descParts.length > 0
+            ? descParts.join(" · ")
+            : `AI phase for ${generatedPath.goalTitle}`;
 
         milestonesToCreate.push({
           id: milestoneId,
           goal_id: goalId,
-          title: mTitle,
-          description: `AI step for ${title}`,
+          title: ms.title,
+          description,
           status: orderIndex === 0 ? "in_progress" : "locked",
           order_index: orderIndex,
           parent_milestone_id: currentParentId,
         });
 
-        tasksToCreate.push({
-          milestone_id: milestoneId,
-          title: `Kickoff: ${mTitle}`,
-          completed: false,
-          due_date: null,
-        });
-        tasksToCreate.push({
-          milestone_id: milestoneId,
-          title: `Execute: ${mTitle}`,
-          completed: false,
-          due_date: null,
+        ms.substeps.forEach((sub, subIdx) => {
+          tasksToCreate.push({
+            milestone_id: milestoneId,
+            title: sub,
+            completed: false,
+            due_date: null,
+            sort_order: subIdx,
+          });
         });
 
         currentParentId = milestoneId;
-      }
+      });
 
-      // Persist to Supabase first if authenticated
-      if (user) {
-        const { error: goalErr } = await supabase.from("goals").insert({
-          id: goalId,
-          user_id: realUserId,
-          title: newGoal.title,
-          category: newGoal.category,
-          target_date: newGoal.target_date,
-          status: newGoal.status,
-        });
-        if (goalErr) console.error("Error inserting goal:", goalErr);
-
-        const dbMilestones = milestonesToCreate.map((m) => ({
-          id: m.id,
-          goal_id: m.goal_id,
-          title: m.title,
-          description: m.description,
-          status: m.status,
-          order_index: m.order_index,
-          parent_milestone_id: m.parent_milestone_id,
-        }));
-        const { error: msErr } = await supabase.from("milestones").insert(dbMilestones);
-        if (msErr) console.error("Error inserting milestones:", msErr);
-
-        const dbTasks = tasksToCreate.map((t) => ({
-          id: crypto.randomUUID(),
-          milestone_id: t.milestone_id,
-          title: t.title,
-          completed: t.completed,
-        }));
-        const { error: tErr } = await supabase.from("tasks").insert(dbTasks);
-        if (tErr) console.error("Error inserting tasks:", tErr);
-      }
-
-      // Update Zustand store for immediate UI (uses UUID ids so store won't re-persist)
+      // Persist via Zustand only (addGoal / addMilestone / addTasks write to Supabase).
+      // Do not duplicate-insert here — that caused 23505 duplicate key errors.
       addGoal(newGoal);
       for (const m of milestonesToCreate) {
         addMilestone(m);

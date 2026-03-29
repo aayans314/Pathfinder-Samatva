@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { CheckCircle2, Circle, Lock, Loader2, X, Star } from "lucide-react";
+import { CheckCircle2, Circle, Lock, Loader2, X, Star, PauseCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +34,12 @@ const statusDisplay: Record<
   locked: {
     label: "Locked",
     icon: Lock,
+    variant: "outline",
+    color: "text-muted-foreground",
+  },
+  paused: {
+    label: "Paused",
+    icon: PauseCircle,
     variant: "outline",
     color: "text-muted-foreground",
   },
@@ -122,7 +128,7 @@ export function MilestoneDetailPanel({
           </div>
         )}
 
-        {milestone.description && (
+        {milestone.description && milestone.status !== "locked" && (
           <p className="text-sm text-muted-foreground">
             {milestone.description}
           </p>

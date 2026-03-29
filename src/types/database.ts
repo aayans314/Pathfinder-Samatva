@@ -1,5 +1,9 @@
 export type GoalStatus = "active" | "paused" | "completed" | "archived";
-export type MilestoneStatus = "locked" | "in_progress" | "completed";
+export type MilestoneStatus =
+  | "locked"
+  | "in_progress"
+  | "paused"
+  | "completed";
 export type GoalCategory =
   | "daily"
   | "academics"
@@ -47,6 +51,8 @@ export interface Task {
   completed: boolean;
   due_date: string | null;
   created_at: string;
+  /** Lower sorts first; used after agentic reschedule reprioritization. */
+  sort_order?: number;
 }
 
 export interface DailyGoal {

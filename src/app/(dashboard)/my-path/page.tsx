@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Loader2, Sparkles } from "lucide-react";
 import {
   useGoals,
   useMilestones,
@@ -20,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useAppStore } from "@/lib/store";
 import type { GoalCategory } from "@/types/database";
 
 const ALL_CATEGORIES: GoalCategory[] = [
@@ -47,6 +50,10 @@ function MyPathContent() {
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(
     null
   );
+  const [capacityPercent, setCapacityPercent] = useState(100);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+  const applyAgentReschedule = useAppStore((s) => s.applyAgentReschedule);
 
   const filteredGoals = useMemo(() => {
     if (!selectedCategory) return goals;
@@ -95,6 +102,36 @@ function MyPathContent() {
     ? CATEGORY_CONFIG[selectedCategory].ring
     : undefined;
 
+  const handleAgentReschedule = useCallback(async () => {
+    setRescheduleError(null);
+    setRescheduleLoading(true);
+    try {
+      const res = await fetch("/api/agent/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capacityPercent }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        milestonesToPause?: string[];
+        reprioritizedTaskIds?: string[];
+      };
+      if (!res.ok) {
+        throw new Error(data.error || "Could not reschedule");
+      }
+      applyAgentReschedule({
+        milestonesToPause: data.milestonesToPause ?? [],
+        reprioritizedTaskIds: data.reprioritizedTaskIds ?? [],
+      });
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Reschedule failed. Try again.";
+      setRescheduleError(message);
+    } finally {
+      setRescheduleLoading(false);
+    }
+  }, [applyAgentReschedule, capacityPercent]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
       {/* Category tabs */}
@@ -128,9 +165,62 @@ function MyPathContent() {
             );
           }
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
           <AddPathDialog onSuccess={handleCategoryChange} />
         </div>
+      </div>
+
+      {/* Capacity alert — agentic reschedule */}
+      <div className="mb-4 shrink-0 rounded-lg border bg-muted/30 px-3 py-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Capacity alert
+          </span>
+          <label className="flex items-center gap-2 flex-1 min-w-[160px] max-w-md">
+            <span className="text-[10px] text-muted-foreground w-8">Low</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={capacityPercent}
+              onChange={(e) =>
+                setCapacityPercent(Number.parseInt(e.target.value, 10))
+              }
+              disabled={rescheduleLoading}
+              className="flex-1 h-2 accent-foreground disabled:opacity-50"
+              aria-label="Available capacity percent"
+            />
+            <span className="text-[10px] text-muted-foreground w-8 text-right">
+              High
+            </span>
+          </label>
+          <span className="text-xs tabular-nums font-medium w-10">
+            {capacityPercent}%
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="gap-1.5 shrink-0"
+            disabled={rescheduleLoading || milestones.length === 0}
+            onClick={() => void handleAgentReschedule()}
+          >
+            {rescheduleLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            Restructure path
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Lower capacity lets Navigator pause non-critical milestones and
+          reprioritize tasks. Critical academics, career, and visa-related goals
+          stay protected.
+        </p>
+        {rescheduleError && (
+          <p className="text-xs text-destructive">{rescheduleError}</p>
+        )}
       </div>
 
       {/* Category summary */}
@@ -167,6 +257,14 @@ function MyPathContent() {
 
       {/* Flow graph */}
       <div className="flex-1 relative rounded-lg border bg-muted/20 overflow-hidden">
+        {rescheduleLoading && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/85 backdrop-blur-[2px] px-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-medium text-center text-foreground max-w-sm">
+              Navigator is restructuring your path…
+            </p>
+          </div>
+        )}
         {milestones.length > 0 ? (
           <MilestoneFlow
             key={`${selectedCategory ?? "all"}-${selectedGoalId}-layout-${selectedCategory ? "linear" : "radial"}`}

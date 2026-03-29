@@ -5,6 +5,7 @@ import { NavigatorChat } from "@/components/features/navigator-chat";
 import { NotificationBell } from "@/components/features/notification-bell";
 import { ThemeToggle } from "@/components/features/theme-toggle";
 import { DataProvider } from "@/components/providers/data-provider";
+import { ReminderScheduler } from "@/components/features/reminder-scheduler";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
   return (
     <TooltipProvider>
       <DataProvider>
+        <ReminderScheduler />
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>

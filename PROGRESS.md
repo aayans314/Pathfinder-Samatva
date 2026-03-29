@@ -1,80 +1,81 @@
-# Pathfinder — Team Coordination Hub
+# Pathfinder — progress & coordination
 
-## System State
-- **Tech Stack:** Next.js 16, TypeScript (strict), Tailwind CSS v4, shadcn/ui, Supabase, Zustand, React Query, React Flow, date-fns
-- **Theme:** Goal Intelligence — Career Path & Visa Journey for International Students
-- **Global Constants:**
-  - Path alias: `@/*` → `./src/*`
-  - shadcn/ui config: `components.json` (style: base-nova, RSC: true)
-  - CSS variables defined in `src/app/globals.css`
-  - Font: Geist Sans (`--font-sans`) + Geist Mono (`--font-geist-mono`)
-  - State store: `src/lib/store.ts` (Zustand) — single source of truth for all client state
+## System state
 
-## Active Tasks (Locking)
-- [ ] **Mobile Responsiveness**: Refine the Radial Layout and Flow diagrams for smaller mobile viewports.
+- **Stack:** Next.js 16, TypeScript, Tailwind v4, shadcn/ui, Supabase, Zustand, React Flow, DeepSeek (`openai` SDK), date-fns
+- **Path alias:** `@/*` → `./src/*`
+- **Global UI:** Fonts and theme variables in `src/app/globals.css`; root `layout.tsx` uses `next/script` + `beforeInteractive` for dark-mode class init (no raw `<script>` in JSX)
+- **Client data:** `src/lib/store.ts` + `DataProvider` hydration from Supabase
+- **AI client:** All API routes use `getDeepSeekClient()` from `src/lib/openai-deepseek.ts` — lazy factory, no top-level `new OpenAI()` (safe for `next build` without env vars)
 
-## Completed (Sync Log)
+## Completed (recent + core)
 
-### Phase 1: Scaffolding & Database Schema
-- [x] **Project Scaffold** — Next.js 16 initialized with Tailwind CSS v4 and TypeScript strict mode
-- [x] **shadcn/ui Setup** — Initialized with sidebar, button, separator, tooltip, avatar, badge, dialog, label, select, textarea, checkbox, card, dropdown-menu, progress components
-- [x] **Dependency Install** — @supabase/supabase-js, zustand, @tanstack/react-query, @xyflow/react, date-fns, lucide-react
-- [x] **TypeScript Interfaces** — `src/types/database.ts` — User, Goal, Milestone, Task types with GoalStatus/MilestoneStatus enums
-- [x] **SQL Schema** — `src/lib/supabase/schema.sql` — 4 tables with RLS policies, indexes, cascading FKs
-- [x] **Mock Data** — `src/lib/mockData.ts` — H-1B international student scenario with 5 users, 8 goals, 10 milestones, 18 tasks
-- [x] **Layout Shell** — Sidebar navigation (Dashboard, My Path, Decisions, Peers) using shadcn/ui Sidebar in `(dashboard)` route group
+### Product & AI
 
-### Phase 2: Core Features — Visualization & Task Management
-- [x] **Zustand Store** — `src/lib/store.ts` — Centralized state with CRUD for tasks, milestone status updates, goal status updates, and decisions
-- [x] **Custom Hooks** — `src/hooks/use-goals.ts` — useCurrentUser, useGoals, useMilestones, useTasks, useStats hooks with computed selectors
-- [x] **Dynamic Dashboard** — `src/app/(dashboard)/page.tsx` — Live stat cards, progress bar, goal list, upcoming tasks, full task list with CRUD
-- [x] **React Flow Visualization** — `src/app/(dashboard)/my-path/page.tsx` — Interactive branching milestone map with:
-  - Custom `MilestoneNode` component with status colors (emerald/blue/muted), icons, task progress bars
-  - Auto-layout engine via `src/hooks/use-flow-graph.ts` (tree-based recursive positioning)
-  - Goal filter dropdown, milestone detail panel with task checkboxes
-  - Animated edges for in-progress milestones, completed edges in green
-- [x] **Task CRUD** — `src/components/features/task-form-dialog.tsx` + `task-list.tsx` — Create/edit/delete tasks with milestone linking dropdown grouped by goal
+- [x] **Seven time horizons** — Each generated path has **7 milestones** (fixed slots: today, this week, this month, ~90 days, 6–12 months, 1–3 years, 3+ years) with short substeps (≤90 chars). Normalization in `src/lib/ai/generated-path.ts` (`finalizeSevenTimeframes`, `TIME_FRAME_IDS`); missing slots padded, duplicates merged.
+- [x] **Personalized generation** — API prompt requests `personalizedPathIntro` (per path) and `personalizedNote` (per milestone) using name, bio, and resume; onboarding review shows "For you" callout and horizon badges (`getTimeFrameLabel`).
+- [x] **Generate paths API** — `POST /api/generate-paths` (DeepSeek, JSON mode, temp 0.42). Accepts `name`, `bio`, `goals[]`, `resumeContext`, `resumeStructured`.
+- [x] **Onboarding** — Multi-step: About You → Goals → AI Analysis → Review. Optional resume upload (PDF → `/api/parse-resume`). Batch inserts goals/milestones/tasks to Supabase, then `clearAndSetPaths` for immediate UI.
+- [x] **Add Path** — Same generate-paths pipeline; persists via Zustand store only (avoids duplicate Supabase inserts that caused 23505 errors).
+- [x] **Navigator** — Dashboard AI chatbot (`/api/chat`). Prompt-injection guard, context-aware system prompt, conversation history trimming.
+- [x] **Resume parse** — `POST /api/parse-resume`: PDF text extraction via `unpdf`, optional DeepSeek structured parse. Graceful fallback (returns raw text if no API key).
+- [x] **Proactive strip & calendar** — Top-focus messaging; **export focus to `.ics`** (`src/lib/calendar-ics.ts`, `export-focus-ics-button`). Minimal VEVENT builder with Blob download.
+- [x] **Focus today** — `useSmartPriority`: deduping, deprioritize milestone-sized duplicates and **far-horizon** phrasing (`looksLikeFarHorizonTask`), user-facing **focus hints** ("Due today", "Active phase", "Unblocks next step") instead of internal scoring strings.
+- [x] **Weekly report** — `POST /api/weekly-report`: authenticated, loads user's goals/milestones/tasks, generates a short AI report with stats.
 
-### Phase 3: Decision Analyzer
-- [x] **Decision Analyzer** — `src/app/(dashboard)/decisions/page.tsx` — Side-by-side comparative UI:
-  - `DecisionForm` dialog with weighted scoring grid against user goals
-  - `DecisionCard` with total/percentage scores, per-criterion breakdown, winner highlight
-  - Create and delete decisions, persisted in Zustand store
+### Agent & path ops
 
-### Phase 4: Peer Matching
-- [x] **Peer Matching Feed** — `src/app/(dashboard)/peers/page.tsx` — Peer discovery:
-  - Filters opted-in users by shared goal titles
-  - Goal filter dropdown, visa type badges
-  - `PeerCard` with avatar, bio, shared goal badges, goal count
-  - Sorted by number of shared goals (most relevant first)
+- [x] **Agent reschedule** — `POST /api/agent/reschedule`: tool-calling flow with DeepSeek (`reallocate_timeline` function tool). Accepts `capacityPercent` (0–100), loads user's full path data, calls AI with 55s timeout + AbortController, sanitizes tool response (filters invalid IDs, protects academic/career/visa milestones from pause). Store action `applyAgentReschedule` persists `sort_order` + milestone `paused` status to Supabase. UI trigger on My Path page.
+- [x] **Milestone `paused`** — `MilestoneStatus` type includes `paused`; `milestone-node.tsx` and `milestone-detail-panel.tsx` render paused state (greyscale icon + muted styling). Smart priority penalizes paused milestone tasks (−200 score).
 
-### Phase 5: Gamified Visualization
-- [x] **My Path Revamp** — Added category tab pills, progress header banner, and gamified nodes (gold completed, blue pulsing active, locked).
-- [x] **Radial Dashboard** — Created `useRadialGraph` for an aesthetic starburst layout centering on the User Hub avatar node. 
-- [x] **XP System** — Integrated global Level and XP scaling (+10 XP per task, +50 per milestone)
+### Foundation (historical)
 
-### Phase 6: AI Onboarding & Supabase Auth
-- [x] **Supabase Integration** — Installed `@supabase/ssr`, connected `browser`, `server`, and `middleware` utilities. Real `.env.local` keys initialized!
-- [x] **OAuth Login** — Beautiful `/login` page with Google and LinkedIn integration buttons. Added **Forgot Password** recovery flow with magic links.
-- [x] **AI Agent Integration** — Server-side `/api/generate-paths` connected to DeepSeek. Added **Navigator**, a persistent dashboard AI chatbot for coaching.
-- [x] **Smart Onboarding UI** — Collects user's primary goals and instructs DeepSeek to output personalized JSON "Paths of Life". Results are persisted directly to Supabase (`profiles`, `goals`, `milestones`, `tasks`).
-- [x] **Add Path Dialog** — Wired up My Path's "+ Add Path" to utilize the live DeepSeek API for dynamic gap-filling generation.
-- [x] **Global Data Hydration** — Built `<DataProvider>` to pull Supabase records on mount and hydrate the client-side Zustand store.
+- [x] Scaffolding, SQL schema (`supabase_schema.sql` / `src/lib/supabase/schema.sql`), RLS, types in `src/types/database.ts`
+- [x] Auth middleware, login flows (OAuth + email), `DataProvider`
+- [x] Dashboard, My Path (linear + radial), decisions UI, peers UI, XP/level hooks, task CRUD patterns
+- [x] Browser reminder scheduler (`reminder-scheduler.tsx`): `setInterval` checks profile notification prefs + fires browser `Notification` once per day at configured time (requires tab open)
 
-## Active Blockers / Warnings
-- **Decisions are not persisted to DB.** The `Decision` type lives in `src/lib/store.ts` and is not yet in `supabase_schema.sql`.
+## Known issues & gaps
 
-## Architecture Decisions
-- **Route Group:** All dashboard pages live under `src/app/(dashboard)/` which wraps them in `SidebarProvider` + `TooltipProvider`. The root `layout.tsx` only handles fonts and global styles.
-- **State Management:** Zustand store (`src/lib/store.ts`) holds all data and mutations. Custom hooks in `src/hooks/use-goals.ts` provide computed selectors. React Query will replace this for server state once Supabase is connected.
-- **Milestone Tree:** `milestones.parent_milestone_id` is self-referential (nullable FK) to support branching paths in React Flow. Layout is computed recursively in `src/hooks/use-flow-graph.ts`.
-- **order_index:** Added to milestones for deterministic positioning in the flow diagram.
-- **Status Enums:** GoalStatus = active | paused | completed | archived. MilestoneStatus = locked | in_progress | completed. Enforced as CHECK constraints in SQL and union types in TypeScript.
-- **shadcn Select API:** Uses `@base-ui/react` — `onValueChange` passes `string | null` (not `string`). All Select handlers must handle null.
-- **Peer Matching:** Matches users by shared goal title strings. When Supabase is connected, switch to matching by `goal_id` or a shared tag/category system.
+### Functional bugs
 
-## To-Do (Priority List)
-1. Convert `decisions` and `peers` features to use Supabase tables
-2. Add real-time Supabase subscriptions for task/milestone updates across devices
-3. Add dark mode toggle and further theme refinement
-4. Mobile responsive layout passes for complex graphs
+- [ ] **Task ID mismatch after onboarding** — `clearAndSetPaths` regenerates task IDs with `crypto.randomUUID()`, but onboarding already inserted tasks with different UUIDs into Supabase. Subsequent task updates/deletes from the dashboard may target wrong DB rows. **Fix:** pass stable IDs into `clearAndSetPaths` or skip DB insert when using `clearAndSetPaths`.
+- [ ] **Focus ranking ignores agent `sort_order`** — `useSmartPriority` uses its own scoring heuristics; after agent reschedule, `sort_order` is written to tasks but not consumed by the focus hook. The two orderings can disagree.
+- [ ] **`/api/chat` doesn't validate `messages`** — if `messages` is missing or not an array, the route throws 500 instead of 400.
+- [ ] **`/api/weekly-report` doesn't check Supabase errors** — goals query ignores `.error`; a DB failure silently looks like "empty progress."
+
+### Product gaps
+
+- [ ] **Decisions** — Not persisted to Supabase (store-only).
+- [ ] **Peers** — Matches by goal title string; should match by ID/tag when available.
+- [ ] **Realtime** — No cross-device live subscriptions for tasks/milestones.
+- [ ] **Mobile** — Complex React Flow graphs need polish on small viewports.
+
+## API route summary
+
+| Route | Method | Purpose | AI? | Auth? |
+|-------|--------|---------|-----|-------|
+| `/api/generate-paths` | POST | Build 7-horizon paths from goals | DeepSeek | No (client sends user context) |
+| `/api/chat` | POST | Navigator coach chat | DeepSeek | No (session optional) |
+| `/api/parse-resume` | POST | PDF → text + optional structured parse | DeepSeek (optional) | No |
+| `/api/weekly-report` | POST | AI weekly progress report | DeepSeek | Yes (Supabase auth) |
+| `/api/agent/reschedule` | POST | Agentic reschedule with tool calling | DeepSeek (tools) | Yes (Supabase auth) |
+| `/api/calendar/sync` | POST | Google Calendar free-slot sync | No | Yes (OAuth token) |
+
+## Near-term backlog
+
+1. Fix task ID mismatch in onboarding → `clearAndSetPaths`
+2. Wire agent `sort_order` into `useSmartPriority` as a boost/tiebreaker
+3. Validate `messages` array in `/api/chat`
+4. Check Supabase `.error` in weekly-report queries
+5. Persist decisions in Supabase with RLS
+6. Optional: home UI that surfaces all seven horizons in an accordion (data already exists on the path)
+
+## Architecture notes
+
+- **Route group:** `(dashboard)` wraps sidebar shell; root layout is minimal (fonts, global CSS, theme script).
+- **Milestone tree:** `parent_milestone_id` supports branching; flow layout in `use-flow-graph` / radial variant.
+- **Focus vs path:** **Focus today** is intentionally a **small ranked slice** of tasks; the **full 7-horizon plan** lives on the path and in onboarding review.
+- **AI client:** `src/lib/openai-deepseek.ts` exports `getDeepSeekClient()` — instantiated per-request, not at module scope. Prevents build failures when `DEEPSEEK_API_KEY` is unset.
+- **Supabase env:** `src/lib/supabase/env.ts` returns placeholder credentials at build time so `next build` succeeds without env vars; real deployments must set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- **shadcn Select:** `@base-ui/react` may pass `null` to `onValueChange`—handlers should accept it.

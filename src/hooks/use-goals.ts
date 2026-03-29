@@ -58,7 +58,15 @@ export function useTasks(milestoneId?: string) {
     const userMilestoneIds = new Set(
       milestones.filter((m) => userGoalIds.has(m.goal_id)).map((m) => m.id)
     );
-    return tasks.filter((t) => userMilestoneIds.has(t.milestone_id));
+    const filtered = tasks.filter((t) =>
+      userMilestoneIds.has(t.milestone_id)
+    );
+    return [...filtered].sort((a, b) => {
+      const ao = a.sort_order ?? 0;
+      const bo = b.sort_order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return a.created_at.localeCompare(b.created_at);
+    });
   }, [tasks, milestones, goals, currentUserId, milestoneId]);
 }
 

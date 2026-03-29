@@ -140,10 +140,13 @@ export function useFlowGraph(
     const edges: Edge[] = milestones
       .filter((m) => m.parent_milestone_id !== null)
       .map((m) => {
-        const parentStatus = milestoneMap.get(m.parent_milestone_id!)?.status;
+        const parent = milestoneMap.get(m.parent_milestone_id!);
+        const parentStatus = parent?.status;
         const isCompleted = parentStatus === "completed";
         const isActive =
-          m.status === "in_progress" || parentStatus === "in_progress";
+          (m.status === "in_progress" || parentStatus === "in_progress") &&
+          m.status !== "paused" &&
+          parentStatus !== "paused";
 
         return {
           id: `e-${m.parent_milestone_id}-${m.id}`,

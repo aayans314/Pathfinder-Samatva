@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { CheckCircle2, Lock, Loader2 } from "lucide-react";
+import { CheckCircle2, Lock, Loader2, PauseCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MilestoneStatus } from "@/types/database";
 
@@ -30,6 +30,11 @@ const statusStyles: Record<
   locked: {
     icon: Lock,
     classes: "border-border bg-muted/40 opacity-50",
+  },
+  paused: {
+    icon: PauseCircle,
+    classes:
+      "border-muted-foreground/30 bg-muted/60 text-muted-foreground opacity-75 grayscale",
   },
 };
 
@@ -59,7 +64,8 @@ function MilestoneNodeComponent({ data }: NodeProps) {
             nodeData.status === "completed" && "text-foreground",
             nodeData.status === "in_progress" &&
               "text-foreground/70 animate-spin",
-            nodeData.status === "locked" && "text-muted-foreground"
+            nodeData.status === "locked" && "text-muted-foreground",
+            nodeData.status === "paused" && "text-muted-foreground/80"
           )}
         />
         <div className="min-w-0 flex-1">

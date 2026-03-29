@@ -26,6 +26,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const stored = getStoredTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from localStorage after mount
     setTheme(stored);
     applyTheme(stored);
   }, []);
