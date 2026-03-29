@@ -37,6 +37,9 @@ export default function LoginPage() {
       provider,
       options: {
         redirectTo: `${getSiteUrl()}/auth/callback`,
+        queryParams: {
+          prompt: "consent",
+        },
       },
     });
 
