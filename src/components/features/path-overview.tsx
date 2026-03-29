@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChevronRight, CheckCircle2, Loader2, Lock, PauseCircle } from "lucide-react";
+import { ChevronRight, CheckCircle2, Circle, Lock, PauseCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_CONFIG } from "@/components/features/life-section-card";
 import {
@@ -21,7 +21,7 @@ const STATUS_DOT: Record<MilestoneStatus, { bg: string; ring: string; glow: bool
 
 const STATUS_ICON: Record<MilestoneStatus, React.ComponentType<{ className?: string }>> = {
   completed: CheckCircle2,
-  in_progress: Loader2,
+  in_progress: Circle,
   locked: Lock,
   paused: PauseCircle,
 };
@@ -175,7 +175,6 @@ export function PathOverview({ onCategoryClick }: PathOverviewProps) {
                           <Icon
                             className={cn(
                               "h-6 w-6 sm:h-7 sm:w-7 text-white",
-                              m.status === "in_progress" && "animate-spin",
                               m.status === "locked" && "text-muted-foreground"
                             )}
                           />

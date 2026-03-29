@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { CheckCircle2, Lock, Loader2, PauseCircle, ChevronRight } from "lucide-react";
+import { CheckCircle2, Lock, Circle, PauseCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MilestoneStatus } from "@/types/database";
 
@@ -45,7 +45,7 @@ const STATUS_META: Record<
     badgeText: "text-emerald-700 dark:text-emerald-300",
   },
   in_progress: {
-    icon: Loader2,
+    icon: Circle,
     badge: "In progress",
     dotColor: "bg-cyan-400 animate-pulse",
     borderColor: "border-cyan-400/50",
@@ -148,8 +148,7 @@ function MilestoneNodeComponent({ data }: NodeProps) {
               <StatusIcon
                 className={cn(
                   "h-7 w-7",
-                  meta.iconColor,
-                  d.status === "in_progress" && "animate-spin"
+                  meta.iconColor
                 )}
               />
             </div>

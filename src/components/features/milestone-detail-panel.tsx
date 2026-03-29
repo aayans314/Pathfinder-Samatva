@@ -28,7 +28,7 @@ const statusDisplay: Record<
   },
   in_progress: {
     label: "In Progress",
-    icon: Loader2,
+    icon: Circle,
     variant: "secondary",
     color: "text-blue-600",
   },
@@ -91,8 +91,7 @@ export function MilestoneDetailPanel({
           <StatusIcon
             className={cn(
               "h-4 w-4",
-              config.color,
-              milestone.status === "in_progress" && "animate-spin"
+              config.color
             )}
           />
           <Badge variant={config.variant}>{config.label}</Badge>
