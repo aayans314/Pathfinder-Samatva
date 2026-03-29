@@ -395,7 +395,6 @@ export default function OnboardingPage() {
             milestone_id: milestoneId,
             title: sub,
             completed: false,
-            sort_order: subIdx,
           };
           tasksToInsert.push(row);
           storeTasks.push({
