@@ -320,7 +320,7 @@ export default function OnboardingPage() {
       milestone_id: string;
       title: string;
       completed: boolean;
-      sort_order: number;
+      sort_order?: number;
     };
     const goalsToInsert: GoalRow[] = [];
     const milestonesToInsert: MilestoneRow[] = [];

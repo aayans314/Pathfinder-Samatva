@@ -79,6 +79,25 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Production Deployment (Vercel)
+
+If you are deploying this application to Vercel, you **must** configure the following to avoid authentication and AI timeout failures:
+
+1. **Vercel Environment Variables:** 
+   - Ensure all `.env.local` variables are added to your Vercel project exactly as they appear (no trailing spaces or hidden quote marks).
+   - Add `NEXT_PUBLIC_SITE_URL` and set it to your main production domain (e.g., `https://pathfinder.vercel.app`).
+   - *Note:* If you update environment variables in Vercel, you must manually trigger a **Redeploy** (with "Use existing Build Cache" unchecked) for them to take effect.
+
+2. **Supabase Dashboard configuration:**
+   - Go to **Authentication → URL Configuration**.
+   - Set the **Site URL** to your exact production Vercel URL.
+   - Under **Redirect URLs**, you **must** whitelist your domain by adding `https://your-domain.vercel.app/**`. If this wildcard is missing, Supabase will strip the callback URL and Vercel's preview login wall will block Google OAuth forever.
+
+3. **Vercel Timeout Limits:**
+   - Vercel's free Hobby tier kills all API requests at exactly **60.0 seconds**. 
+   - `maxDuration = 60` is set across all AI endpoints.
+   - The Pathfinder deepseek prompts have been heavily optimized to return 7 horizons in < 40 seconds. If they time out due to API load, you must upgrade to Vercel Pro (`maxDuration = 300`) or simplify the prompt further.
+
 ## Repo layout
 
 ```
