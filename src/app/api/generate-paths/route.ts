@@ -50,31 +50,28 @@ export async function POST(req: Request) {
     const userFirstName = (name || "User").trim().split(/\s+/)[0] || "User";
 
     const resumeTextSection = resumeContext
-      ? `\n--- Resume (extracted text) ---\n${resumeContext.slice(0, 12_000)}\n`
+      ? `\n--- Resume (extracted text) ---\n${resumeContext.slice(0, 4_000)}\n`
       : "";
 
     const resumeJsonSection =
       resumeStructured && Object.keys(resumeStructured).length > 0
-        ? `\n--- Resume (structured) ---\n${JSON.stringify(resumeStructured).slice(0, 8000)}\n`
+        ? `\n--- Resume (structured) ---\n${JSON.stringify(resumeStructured).slice(0, 2_000)}\n`
         : "";
 
-    const systemPrompt = `You are Pathfinder's planning engine. For EACH user goal you produce a **to-do list split into exactly seven time horizons**, heavily personalized using their name, bio, and resume (if any). Domains may be anything: career, school, health, money, family, relocation, creative work — never assume they are a founder or engineer unless stated.
+    const systemPrompt = `You are Pathfinder's planning engine. For EACH user goal you produce a **to-do list split into exactly seven time horizons**, personalized using their name, bio, and resume. Answer quickly and concisely.
 
 ## Seven fixed horizons (use each exactly once per path)
 Each milestone must set "timeFrameId" to one of these strings (in this conceptual order from near to far):
 ${TIME_FRAME_SPEC}
 
 ## Personalization (required)
-- Address the user naturally as "${userFirstName}" where appropriate in **personalizedPathIntro** and **personalizedNote** fields — not in every task.
-- **personalizedPathIntro**: one sentence (max ~220 chars) on why this roadmap fits *their* situation (skills, constraints, resume, bio).
-- Every milestone must include **personalizedNote**: one short sentence (max ~220 chars) on why *this time slice* matters for *them* specifically (not generic advice).
-- Use resume/skills to **word** tasks; do not invent degrees, employers, or locations not present in the context.
+- Address the user naturally as "${userFirstName}" where appropriate.
+- **personalizedPathIntro**: max 100 chars on why this fits them.
+- **personalizedNote**: max 80 chars on why *this time slice* matters.
 
 ## Task rules (substeps)
-- Each milestone has **substeps**: 3–5 strings = the to-do list for that horizon.
-- Each substep ≤ **90 characters**, single concrete action (verb + object), completable inside that horizon window.
-- **today** / **this_week**: immediate actions only.
-- **three_plus_years**: only vision-level *next* moves (e.g. "Schedule annual review of portfolio allocation"), not fantasy outcomes.
+- Each milestone has **substeps**: 1–2 short strings = the to-do list for that horizon.
+- Each substep ≤ **60 characters**, single concrete action.
 
 ## Categories
 Pick ONE per path: "academics" | "research" | "internships" | "career" | "fitness" | "networking" | "personal" | "daily"
@@ -86,23 +83,23 @@ ${resumeTextSection}${resumeJsonSection}
 Goals to plan (one path per goal, same order):
 ${goalsList.map((g: string, i: number) => `${i + 1}. ${g}`).join("\n")}
 
-Return ONLY valid JSON (no markdown fences) with this EXACT shape:
+Return ONLY valid JSON with this EXACT shape:
 {
   "paths": [
     {
       "category": "career",
       "goalTitle": "short polished title",
       "goalHorizonYears": 10,
-      "pathSummary": "one neutral sentence on what success looks like",
-      "personalizedPathIntro": "one sentence tailored to this user",
+      "pathSummary": "one neutral sentence",
+      "personalizedPathIntro": "max 100 chars",
       "milestones": [
         {
           "timeFrameId": "today",
-          "title": "short milestone title for this slice",
-          "horizonLabel": "optional; may mirror the fixed label",
-          "personalizedNote": "why this slice matters for them",
-          "description": "optional extra detail",
-          "substeps": ["Task 1", "Task 2", "Task 3"]
+          "title": "short milestone title",
+          "horizonLabel": "optional",
+          "personalizedNote": "max 80 chars",
+          "description": "optional short description",
+          "substeps": ["Task 1", "Task 2"]
         }
       ]
     }
@@ -110,16 +107,16 @@ Return ONLY valid JSON (no markdown fences) with this EXACT shape:
 }
 
 RULES:
-- Exactly **one** path object per user goal, same order as the goals list.
-- **milestones** must contain **exactly 7** objects — one per timeFrameId in order: ${TIME_FRAME_IDS.join(", ")}.
-- Every substep under 90 characters. No markdown. No decade-long outcomes in **today** or **this_week**.`;
+- Exactly **one** path per user goal.
+- **milestones** must contain **exactly 7** objects in order: ${TIME_FRAME_IDS.join(", ")}.
+- Extremely concise JSON processing.`;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "system", content: systemPrompt }],
       model: "deepseek-chat",
       response_format: { type: "json_object" },
       temperature: 0.42,
-      max_tokens: 8192,
+      max_tokens: 4096,
     });
 
     const responseText = completion.choices[0].message.content || "{}";
